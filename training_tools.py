@@ -88,7 +88,8 @@ def train(game,
             total_loss.backward()
             optimizer.step()
             
-            print("Mini batch complete. Loss is: {}".format(total_loss.item()))
+            print("Mini batch complete. ".format(loss2.item()))
+            print("CELoss is: {}. MSELoss is: {}. Total Loss is: {}".format(loss1.item(), loss2.item(), total_loss.item()))
             
         neural_network.eval()
         
