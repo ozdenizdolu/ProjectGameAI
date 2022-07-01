@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 """
-Created on Sun Jun 12 22:56:57 2022
+
 """
 
 import numpy as np
@@ -13,9 +12,9 @@ def _other_player(player):
     assert player in {X,O}
     return X if player == O else O
 
-class TicTacToe:
-    #TODO
-    pass
+# class TicTacToe:
+#     #TODO
+#     pass
 
 def initial_state():
     return TicTacToeState(np.array([empty]*9).reshape(3,3), X)
@@ -62,12 +61,12 @@ class TicTacToeState:
             strike, value = self._look_for_strike()
         except TypeError:
             #No strike so it must be a draw (if it is game over of course)
-            return {X:0, O:0}
+            return {X:0., O:0.}
         
         if value == X:
-            return {X:1, O:-1}
+            return {X:1., O:-1.}
         elif value == O:
-            return {X:-1, O:1}
+            return {X:-1., O:1.}
         else:
             assert False
                 
@@ -91,7 +90,7 @@ class TicTacToeState:
         if not len(move) == 3:
             raise ValueError('Move is not recognized.')
         new_board = np.array(self._board, copy = True)
-        new_board[move[0], move[1]] = move[2] 
+        new_board[move[0], move[1]] = move[2]
         return TicTacToeState(new_board, _other_player(self._turn))
         
     

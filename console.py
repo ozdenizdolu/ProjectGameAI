@@ -14,6 +14,9 @@ PROJECT COMMITMENTS (FORMAT THIS LATER ON):
     --> Reversi game state is immutable and supports
     __eq__ for state comparison
     
+    --> NN module should provide a function for creating
+    evaluators from nns. signature: as_evaluator(nn, game)
+    
 PROJECT BUG WARNINGS:
     
     --> numpy.array function tries to create multidimensional
@@ -38,66 +41,70 @@ HIGH LEVEL NOTES:
     
     --> Use Bayesian methods for hyperparameter optimization.
     
+    --> For performance, it is possible to use the same tree for
+    the generation of subsequent moves during training game generation.
+    I decided not to implement it yet due to biasses introduced.
+    
     
 """
 
-import re
-#for the console
-from importlib import reload
 
-# from game.reversi.reversi_game_state import ReversiGameState
-# from game.reversi.reversi_game_state import random_play
+#Tools for the interactive session
+
+import re
+import random
+from importlib import reload
+import cProfile
+import time
+import itertools
+
+
+import numpy as np
+import torch
 
 
 from mcts import *
 import game.tictactoe.tictactoe as tct
-import time
+from game.reversi.reversi_game import Reversi
+from training_tools import train, TournamentGameSession
+from neural_network import TicTacToe_defaultNN as NN
 
-
-
-
-# def play_anything(game_state):
+if __name__ == '__main__':
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
+    # net = NN(device).to(device)
     
-#     g = game_state
+    # train(tct, net, 100, modified_alphazero_selector, 100, 4, 160, 1.0, 10, 5e-2, 1, 4, device)
     
-#     for spectator in spectators:
-#         notify spectator
-
-# Want a function which makes it play any game
-# Want to make ai compete as well as me in console or screen
-# Want to store extra information and send it during execution
-# Want support for several player games
-
-def game_session(initialization_strategy, move_strategy,
-                 finalization_strategy):
+    net = torch.load('checkpointfinal.pt')
     
-    initialization_strategy()
-    while not game.is_game_over():
-        move_strategy()
-    finalization_strategy()
-
-
-
-# def game_session(agents, dataholder):
+    net_player = lambda state: mcts(state, net.as_evaluator(), 100,
+                modified_alphazero_selector)
+    
+    random_player = lambda state: random.choice(state.moves())
+    
+    UCT_player = lambda state: mcts(state, random_playout_evaluator, 100,
+                                    modified_alphazero_selector)
     
     
+    results = [{} for _ in range(100)]
     
+    for result in results:
+        TournamentGameSession(tct, {tct.O:net_player,
+                                    tct.X:UCT_player}, result).run()
+    
+    print('O = ' +str(sum(result[tct.O]>0.5 for result in results)))
+    print('X = ' +str(sum(result[tct.X]>0.5 for result in results)))
 
 
-def game(game, players):
-    g = [game.initial_state()]
-    m = []
-    o = []
+# TODO
+# def compare(players, times):
+#     """Distribute player's colours and compare their payoffs."""
+#     player_dict = {i: player for i,player in enumerate(players)}
     
-    while not g[-1].is_game_over():
-        m.append(players[g[-1].turn].request_move())
-        o.append(outcome = g[-1].outcomes(move, pick_one = True))
-        g.append(g[-1].after(m[-1], o[-1]))
-        
-    # At this point g has one more element than others
     
-    return g[-1].game_final_evaluation()
 
+#Temporary
 def request_move_from_console(state, move_interpreter):
     while True:
         in_ = input()
@@ -111,7 +118,7 @@ def request_move_from_console(state, move_interpreter):
             print(str(e))
     return move
     
-
+#Temporary
 def play_tct():
     # Initialize the game
     ga = tct.initial_state()
@@ -160,54 +167,56 @@ def play_tct():
     print('\n\nGame is over!\n\nThe results are:')
     print(ga.game_final_evaluation())
 
-
-
-
-
-
-
-
-# state = ReversiGameState.initial_state()
-
-# tree = mcts(state, random_playout_evaluator, 100, exploration_constant= 50,
-#             return_type = 'tree')
-
-
-# def play():
-#     # Play a reversi game with modified UCT
-#     state = ReversiGameState.initial_state()
-#     print('Initialized.\n'+str(state))
-#     while not state.is_game_over():
-#         ai_move = mcts(
-#             state, random_playout_evaluator,
-#             1000, exploration_constant= 50,
-#             return_type = 'move')
-#         state = state.after(ai_move, None)
-#         print(str(state)+'\nYour turn')
-#         while True:
-#             in_ = input()
-#             match = re.match('\d\d', in_)
-#             if match is None:
-#                 print('Prompt not recognized.')
-#                 continue
-#             x,y = map(int, match[0])
-#             x,y = x-1,y-1
-#             if (x,y) in state.moves():
-#                 break
-#             else:
-#                 print('Move is not possible.')
-#                 continue
-#         state = state.after((x,y),None)
-#         print('YOU PLAYED\n' + str(state))
-        
-        
-# play()
-
-# def game(player_black, player_white):
-#     state = ReversiGameState.initial_state()
+#Temporary
+def play_reversi(mcts_steps = 1000):
+    # Initialize the game
+    ga = Reversi.initial_state()
+    # Notify the spectator
+    print('\n\n')
+    print(ga)
+    print('\n\nGame is starting')
+    # Create the mood
+    time.sleep(2)
     
-#     #TODO
-        
-
-
-
+    while not ga.is_game_over():
+        # Notify the spectator about what is happening
+        print('\n\nComputer is thinking...')
+        # Receive the move from the player (maybe some more data as well)
+        move = mcts(ga, random_playout_evaluator, mcts_steps)
+        # Update the game
+        ga = ga.after(move, None)
+        # Notify the spectator
+        print('\n'+str(ga))
+        # ... not a clean code
+        if ga.is_game_over():
+            break
+        # Request move from the player
+        print('\nYour turn...')
+        while True:
+            in_ = input()
+            #TODO include the pass move
+            match = re.match('\d\d', in_)
+            if match is None:
+                if in_ == 'e':
+                    break
+                if in_ == 'pass' and Reversi.PASS_MOVE in ga.moves():
+                    move = Reversi.PASS_MOVE
+                    break
+                print('Prompt not recognized.')
+                continue
+            x,y = map(int, match[0])
+            x,y = x-1,y-1
+            if (x,y) in ga.moves():
+                move = (x,y)
+                break
+            else:
+                print('Move is not possible.')
+                continue
+        # update the game with the move
+        ga = ga.after(move, None)
+        # Notify the spectator
+        print('YOU PLAYED\n' + str(ga))
+    
+    #Notify the spectator (maybe return other data as well).
+    print('\n\nGame is over!\n\nThe results are:')
+    print(ga.game_final_evaluation())

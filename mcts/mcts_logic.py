@@ -6,15 +6,11 @@ Created on Fri Jun 10 01:31:25 2022
 import math
 import random
 
-# import numpy as np
-
 from .miscellaneous import after
 from .game_state_memorizer import GameStateMemorizer
 from .core_search_tree import CoreSearchTree, CoreSearchNode
 from .search_tree import SearchTree
 
-
-# _rng = np.random.default_rng()
 
 default_game_state_calculator_factory = GameStateMemorizer
 
@@ -38,10 +34,35 @@ def prioritize_non_visited(search_node, exploration_constant):
                                 else math.inf),
                    lambda game_move: search_node.moves[game_move]))
 
+def modified_alphazero_selector(search_node, exploration_constant):
+    parent_visits = 1 + sum(move.visits for move in search_node.moves.values())
+    
+    return max(search_node.moves.keys(),
+               key=after(
+                   lambda move: move.action_value
+                                + (exploration_constant
+                                 * move.prior_probability
+                                 * math.log(parent_visits)
+                                / (1 + move.visits)),
+                   lambda game_move: search_node.moves[game_move]))
+
+def UCT(search_node, exploration_constant):
+    
+    parent_visits = sum(move.visits for move in search_node.moves.values())
+    
+    return max(search_node.moves.keys(),
+               key=after(lambda move: 
+                         (move.action_value
+                         + exploration_constant
+                         * math.sqrt(math.log(1+parent_visits)
+                           / move.visits))
+                         if move.visits != 0 else math.inf,
+                   lambda game_move: search_node.moves[game_move]))
+
 # TODO document
 def mcts(data, evaluator, times,
-         exploration_constant=1,
-         move_selector=prioritize_non_visited,
+         move_selector,
+         exploration_constant=4.1,
          temperature = 1,
          return_type = 'move'):
     """
@@ -108,6 +129,12 @@ def mcts(data, evaluator, times,
     
     core_tree, game_state_calculator = search_tree._components()
     
+    #We have expanded the root
+    times = times - 1
+    
+    if times < 0:
+        raise ValueError('times must be positive.')
+    
     for _ in range(times):
         address, hit_ghost, game_related_info = tree_policy(
             core_tree, game_state_calculator,
@@ -153,7 +180,7 @@ def mcts(data, evaluator, times,
         for game_move, tree_move in core_tree.root.moves.items()}
     
     move_p_as_list = list(move_probabilities.items())
-        
+    
     if return_type == 'distribution':
         return move_probabilities
     
@@ -196,7 +223,7 @@ def tree_policy(core_tree, game_state_calculator,
             # The leading node is not yet in the tree.
             hit_ghost = True
             break
-    return address, hit_ghost, game_iterator.terminate()      #EXPECT from TERMINATE
+    return address, hit_ghost, game_iterator.terminate()
 
 
 def extension_policy(node, move, outcome,

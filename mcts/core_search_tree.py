@@ -32,6 +32,9 @@ class CoreSearchTree:
         nx.draw(G)
     
     def visualize_treelib(self):
+        self.as_treelib_tree().show()
+        
+    def as_treelib_tree(self):
         tree = Tree()
         current_nodes = [(self.root, 0)]
         tree.create_node(0, 0)
@@ -43,7 +46,7 @@ class CoreSearchTree:
                 tree.create_node(str(i)+' --> ' + str(move), i, node_id)
                 current_nodes.append((child, i))
                 i += 1
-        tree.show()
+        return tree
 
 class CoreSearchNode:
     

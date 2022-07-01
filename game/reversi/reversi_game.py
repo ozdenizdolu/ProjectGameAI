@@ -93,26 +93,27 @@ class ReversiGameState:
         self._turn = turn
         self._last_player_passed = last_player_passed
 
-    def _find_move_in_direction(self, position, direction):
-        i , j = position
-        di, dj = direction
-        enemy_found = False
-        empty_found = False
-        i = i + di
-        j = j + dj
-        while i < 8 and j < 8 and i > -1 and j > -1:
-            if not enemy_found:
-                if self._board[i][j] == -self._turn:
-                    enemy_found = True 
-                else:
-                    return False
-            elif not empty_found:
-                if self._board[i][j] == 0:
-                    return (i, j)
-                elif self._board[i][j] == self._turn:
-                    return False
-            i = i + di
-            j = j + dj
+    # This function is integrated to the moves for performance
+    # def _find_move_in_direction(self, position, direction):
+    #     i , j = position
+    #     di, dj = direction
+    #     enemy_found = False
+    #     empty_found = False
+    #     i = i + di
+    #     j = j + dj
+    #     while i < 8 and j < 8 and i > -1 and j > -1:
+    #         if not enemy_found:
+    #             if self._board[i][j] == -self._turn:
+    #                 enemy_found = True 
+    #             else:
+    #                 return False
+    #         elif not empty_found:
+    #             if self._board[i][j] == 0:
+    #                 return (i, j)
+    #             elif self._board[i][j] == self._turn:
+    #                 return False
+    #         i = i + di
+    #         j = j + dj
             
     def outcomes(self, move, pick_one = False):
         if not pick_one:
@@ -153,8 +154,32 @@ class ReversiGameState:
             for j in range(8):
                 if self._board[i][j] == self._turn:
                     for direction in _directions:
-                        move = self._find_move_in_direction((i,j), direction)
-                        if move:
+                        #find move in direction
+                        
+                        di, dj = direction
+                        enemy_found = False
+                        empty_found = False
+                        i_ = i + di
+                        j_ = j + dj
+                        move = None
+                        while i_ < 8 and j_ < 8 and i_ > -1 and j_ > -1:
+                            if not enemy_found:
+                                if self._board[i_][j_] == -self._turn:
+                                    enemy_found = True 
+                                else:
+                                    break
+                            elif not empty_found:
+                                if self._board[i_][j_] == 0:
+                                    move = (i_, j_)
+                                    break
+                                elif self._board[i_][j_] == self._turn:
+                                    break
+                            i_ = i_ + di
+                            j_ = j_ + dj
+                        
+                        #found move (or not)
+                        
+                        if move is not None:
                             valid_moves.append(move)
                             
         if len(valid_moves) == 0:
