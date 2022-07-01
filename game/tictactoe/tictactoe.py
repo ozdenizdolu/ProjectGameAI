@@ -72,7 +72,7 @@ class TicTacToeState:
                 
         
     def game(self):
-        return TicTacToe
+        return TicTacToeState
     
     def turn(self):
         return self._turn
