@@ -64,8 +64,8 @@ import torch
 
 
 from mcts import *
-import game.tictactoe.tictactoe as tct
-from game.reversi.reversi_game import Reversi
+from game.tictactoe import TicTacToe as tct
+from game.reversi import Reversi
 from training_tools import train, TournamentGameSession
 from neural_network import TicTacToe_defaultNN as NN
 

@@ -1,19 +1,22 @@
 """
-
+Provides functions for translating game related information to a form
+which neural networks can understand.
 """
 
 import torch
 import numpy as np
 
-from .tictactoe import X,O
-
+from ._tictactoe import TicTacToe
 
 def state_translator(state):
     # # Make 2 feature planes for stones
-    XS = torch.tensor(state._board == X, dtype=torch.float).reshape((1,3,3))
-    OS = torch.tensor(state._board == O, dtype=torch.float).reshape((1,3,3))
+    XS = torch.tensor(state._board == TicTacToe.X,
+                      dtype=torch.float).reshape((1,3,3))
+    OS = torch.tensor(state._board == TicTacToe.O, 
+                      dtype=torch.float).reshape((1,3,3))
     
-    player_plane = (torch.ones(state._board.shape) if state._turn == X 
+    player_plane = (torch.ones(state._board.shape)
+                    if state._turn == TicTacToe.X 
                     else torch.zeros(state._board.shape)).reshape(1,3,3)
     
     return torch.cat([XS,OS, player_plane], dim = 0).reshape((27,))
@@ -42,8 +45,8 @@ def inv_move_translator(state, legal_moves, output):
     
 def evaluation_translator(evaluation):
     #mapping to tensor
-    return torch.tensor([evaluation[X]], dtype=torch.float)
+    return torch.tensor([evaluation[TicTacToe.X]], dtype=torch.float)
 
 def inv_evaluation_translator(tensor):
-    return {X: tensor.item(), O: -tensor.item()}
+    return {TicTacToe.X: tensor.item(), TicTacToe.O: -tensor.item()}
 

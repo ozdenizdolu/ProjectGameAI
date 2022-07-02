@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 """
-Created on Sun Jun 12 14:10:47 2022
+
 """
 
 import unittest
@@ -8,7 +7,7 @@ import itertools
 import random
 import logging
 
-from ..reversi_game import Reversi
+from .. import Reversi
 
 WHITE, BLACK = Reversi.WHITE, Reversi.BLACK
 

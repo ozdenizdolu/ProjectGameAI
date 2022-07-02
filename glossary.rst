@@ -45,7 +45,7 @@ for the generation of the possible game states one move later.
 The methods expected from a game state are:
 
 # is_game_over()
-# outcomes()
+# outcomes(move, pickone=False)
 # game_final_evaluation()
 # game()
 # turn()

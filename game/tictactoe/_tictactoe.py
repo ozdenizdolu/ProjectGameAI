@@ -1,23 +1,26 @@
 """
-
+This module provides the game logic of the game TicTacToe. 
 """
 
 import numpy as np
 import itertools
 
-X, O, empty = 'X', 'O', '_'
-OUTCOME = 1462198
 
-def _other_player(player):
-    assert player in {X,O}
-    return X if player == O else O
+class TicTacToe:
+    X, O, empty = 100,101,102
+    OUTCOME = 1462198
+    
+    _name_dict = {X:'X', O: 'O', empty: '_'}
+    
+    @classmethod
+    def _other_player(cls, player):
+        assert player in {TicTacToe.X, TicTacToe.O}
+        return TicTacToe.X if player == TicTacToe.O else TicTacToe.O
 
-# class TicTacToe:
-#     #TODO
-#     pass
-
-def initial_state():
-    return TicTacToeState(np.array([empty]*9).reshape(3,3), X)
+    @classmethod
+    def initial_state(cls):
+        return TicTacToeState(np.array([TicTacToe.empty]*9).reshape(3,3), TicTacToe.X)
+    
 
 class TicTacToeState:
     
@@ -28,9 +31,9 @@ class TicTacToeState:
     
     def outcomes(self, move, pick_one = False):
         if not pick_one:
-            return [OUTCOME], [1]
+            return [TicTacToe.OUTCOME], [1]
         else:
-            return OUTCOME
+            return TicTacToe.OUTCOME
     
     def _look_for_strike(self):
         # Returns the first strike it detects.
@@ -50,7 +53,7 @@ class TicTacToeState:
         for strike in itertools.chain(rows, columns, diagonals):
             
             strike_contains = set(self._board[ind] for ind in strike)
-            if len(strike_contains) == 1 and not (empty in strike_contains):
+            if len(strike_contains) == 1 and not (TicTacToe.empty in strike_contains):
                 return strike, strike_contains.pop()
         
         return None
@@ -61,29 +64,29 @@ class TicTacToeState:
             strike, value = self._look_for_strike()
         except TypeError:
             #No strike so it must be a draw (if it is game over of course)
-            return {X:0., O:0.}
+            return {TicTacToe.X:0., TicTacToe.O:0.}
         
-        if value == X:
-            return {X:1., O:-1.}
-        elif value == O:
-            return {X:-1., O:1.}
+        if value == TicTacToe.X:
+            return {TicTacToe.X:1., TicTacToe.O:-1.}
+        elif value == TicTacToe.O:
+            return {TicTacToe.X:-1., TicTacToe.O:1.}
         else:
             assert False
                 
         
     def game(self):
-        return TicTacToeState
+        return TicTacToe
     
     def turn(self):
         return self._turn
 
     def moves(self):
         return list(zip(
-            *((self._board == empty).nonzero()),
+            *((self._board == TicTacToe.empty).nonzero()),
             itertools.repeat(self._turn)))
 
     def after(self, move, outcome):
-        if (outcome != OUTCOME) and (outcome is not None):
+        if (outcome != TicTacToe.OUTCOME) and (outcome is not None):
             raise ValueError('Outcome is not recognized.')
         
         # Make sure that the move is syntactically correct
@@ -91,7 +94,7 @@ class TicTacToeState:
             raise ValueError('Move is not recognized.')
         new_board = np.array(self._board, copy = True)
         new_board[move[0], move[1]] = move[2]
-        return TicTacToeState(new_board, _other_player(self._turn))
+        return TicTacToeState(new_board, TicTacToe._other_player(self._turn))
         
     
     def is_game_over(self):
@@ -108,5 +111,23 @@ class TicTacToeState:
         return False
             
     def __str__(self):
-        return str(self._board)
-
+        return (  '{} {} {}\n'
+                + '{} {} {}\n'
+                + '{} {} {}\n'
+                ).format(*[TicTacToe._name_dict[self._board[indice]]
+                         for indice in np.ndindex(self._board.shape)])
+    
+    def __eq__(self, other):
+        if not isinstance(other, TicTacToeState):
+            return False
+        else:
+            return ((self._board == other._board).all()
+                    and self._turn == other._turn)
+    
+    def __hash__(self):
+        try:
+            return self._cached_hash
+        except AttributeError:
+            self._cached_hash = hash(
+                (hash(self._board.tobytes()), hash(self._turn)))
+            return self._cached_hash
