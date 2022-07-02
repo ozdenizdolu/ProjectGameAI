@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-
 """
-Created on Fri Jun 10 01:02:53 2022
-
 This module is responsible for the organization of game-independent
 information in the search tree.
 
@@ -37,15 +33,16 @@ class CoreSearchTree:
     def as_treelib_tree(self):
         tree = Tree()
         current_nodes = [(self.root, 0)]
-        tree.create_node(0, 0)
+        tree.create_node('Root', 0)
         i = 1
         while len(current_nodes) > 0:
             node, node_id = current_nodes.pop()
-            children = [(child, move) for move in node.moves.values() for child in move.outcome_dict.values()]
-            for child, move in children:
-                tree.create_node(str(i)+' --> ' + str(move), i, node_id)
-                current_nodes.append((child, i))
-                i += 1
+            for game_move, move in node.moves.items():
+                for child in move.outcome_dict.values():
+                    tree.create_node('{} --> {}'.format(str(game_move),str(move))
+                                     , i, node_id)
+                    current_nodes.append((child, i))
+                    i += 1
         return tree
 
 class CoreSearchNode:

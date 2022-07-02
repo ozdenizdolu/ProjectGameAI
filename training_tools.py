@@ -153,7 +153,7 @@ class TournamentGameSession(GameSessionTemplate):
 class TrainingGameSession(GameSessionTemplate):
     
     def __init__(self,
-                 game,
+                 initial_state,
                  evaluator,
                  output,
                  mcts_steps_per_move,
@@ -174,7 +174,6 @@ class TrainingGameSession(GameSessionTemplate):
             the mcts search, and the third element is the result of the
             game in dict format. 
         """
-        self._game = game
         self._evaluator = evaluator
         self._mcts_steps_per_move = mcts_steps_per_move
         self._exploration_constant = exploration_constant
@@ -184,8 +183,10 @@ class TrainingGameSession(GameSessionTemplate):
         self._output = output
         self._temporary_distribution_list = []
         
+        self._states = [initial_state]
+        
     def initialize(self):
-        self._states = [self._game.initial_state()]
+        pass
     
     def proceed(self, player):
         # The next move is determined by mcts. This method needs to

@@ -2,8 +2,13 @@
 This module provides the game logic of the game TicTacToe. 
 """
 
-import numpy as np
 import itertools
+import random
+
+import numpy as np
+from numpy.random import default_rng
+
+np_rng = default_rng()
 
 
 class TicTacToe:
@@ -21,8 +26,22 @@ class TicTacToe:
     def initial_state(cls):
         return TicTacToeState(np.array([TicTacToe.empty]*9).reshape(3,3), TicTacToe.X)
     
+    @classmethod
+    def random_state(cls):
+        mapping = {0: TicTacToe.X, 1: TicTacToe.O, 2: TicTacToe.empty}
+        while True:
+            random_board = np_rng.integers(3, size=(3,3))
+            for i in range(3):
+                random_board[random_board == i] = mapping[i]
+            random_turn = random.choice([TicTacToe.X, TicTacToe.O])
+            state = TicTacToeState(random_board, random_turn)
+            #TODO
+            if not state.is_game_over():
+                return state
+        
 
 class TicTacToeState:
+    
     
     def __init__(self, board, turn):
         """Initialize to the starting position."""
@@ -64,12 +83,12 @@ class TicTacToeState:
             strike, value = self._look_for_strike()
         except TypeError:
             #No strike so it must be a draw (if it is game over of course)
-            return {TicTacToe.X:0., TicTacToe.O:0.}
+            return {TicTacToe.X: 0., TicTacToe.O: 0.}
         
         if value == TicTacToe.X:
-            return {TicTacToe.X:1., TicTacToe.O:-1.}
+            return {TicTacToe.X: 1., TicTacToe.O: -1.}
         elif value == TicTacToe.O:
-            return {TicTacToe.X:-1., TicTacToe.O:1.}
+            return {TicTacToe.X: -1., TicTacToe.O: 1.}
         else:
             assert False
                 
@@ -111,11 +130,12 @@ class TicTacToeState:
         return False
             
     def __str__(self):
-        return (  '{} {} {}\n'
+        return ((  '{} {} {}\n'
                 + '{} {} {}\n'
                 + '{} {} {}\n'
                 ).format(*[TicTacToe._name_dict[self._board[indice]]
                          for indice in np.ndindex(self._board.shape)])
+                + 'turn: {}'.format(TicTacToe._name_dict[self._turn]))
     
     def __eq__(self, other):
         if not isinstance(other, TicTacToeState):

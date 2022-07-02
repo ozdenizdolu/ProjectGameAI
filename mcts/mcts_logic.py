@@ -46,7 +46,7 @@ def modified_alphazero_selector(search_node, exploration_constant):
                                 / (1 + move.visits)),
                    lambda game_move: search_node.moves[game_move]))
 
-def UCT(search_node, exploration_constant):
+def UCT_move_selector(search_node, exploration_constant):
     
     parent_visits = sum(move.visits for move in search_node.moves.values())
     
@@ -60,10 +60,12 @@ def UCT(search_node, exploration_constant):
                    lambda game_move: search_node.moves[game_move]))
 
 # TODO document
-def mcts(data, evaluator, times,
+def mcts(data,
+         evaluator,
+         times,
          move_selector,
-         exploration_constant=4.1,
-         temperature = 1,
+         exploration_constant,
+         temperature,
          return_type = 'move'):
     """
     An implementation of the Monte Carlo tree search.
@@ -129,11 +131,13 @@ def mcts(data, evaluator, times,
     
     core_tree, game_state_calculator = search_tree._components()
     
-    #We have expanded the root
+    # The root has been expanded.
     times = times - 1
     
     if times < 0:
         raise ValueError('times must be positive.')
+        
+    # The main loop of the algorithm.
     
     for _ in range(times):
         address, hit_ghost, game_related_info = tree_policy(
@@ -170,13 +174,13 @@ def mcts(data, evaluator, times,
         return search_tree
     
     temperature_adjusted_visits = {
-        game_move: math.pow(tree_move.visits, temperature)
+        game_move: math.pow(tree_move.visits, (1 / temperature))
         for game_move, tree_move in core_tree.root.moves.items()}
     
     temperaturated_sum = sum(temperature_adjusted_visits.values())
     
     move_probabilities = {
-        game_move: tree_move.visits/temperaturated_sum
+        game_move: temperature_adjusted_visits[game_move]/temperaturated_sum
         for game_move, tree_move in core_tree.root.moves.items()}
     
     move_p_as_list = list(move_probabilities.items())
@@ -231,7 +235,7 @@ def extension_policy(node, move, outcome,
     
     node.moves[move].outcome_dict[outcome] = CoreSearchNode(
         prior_probabilities, new_players_turn)
-    
+
 
 def back_up_policy(address, evaluation):
     for node, game_move, outcome in reversed(address):

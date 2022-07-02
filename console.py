@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 """
-Created on Sat Jun 11 02:21:30 2022
+This module is intended for development purposes.
 
 
 PROJECT COMMITMENTS (FORMAT THIS LATER ON):
@@ -15,7 +14,7 @@ PROJECT COMMITMENTS (FORMAT THIS LATER ON):
     __eq__ for state comparison
     
     --> NN module should provide a function for creating
-    evaluators from nns. signature: as_evaluator(nn, game)
+    evaluators from nns. signature: as_evaluator(nn)
     
 PROJECT BUG WARNINGS:
     
@@ -30,8 +29,9 @@ PROJECT BUG WARNINGS:
 CHANGES:
     
     --> Outcomes should no longer return numpy arrays. It should
-    return plain lists. This change was made due to the numpy.array
-    weird behaivour on 1d arrays of tuples.
+    return plain lists. This change was made due to numpy.ndarray's
+    weird behaivour on 1d arrays of tuples. When moves are tuples as
+    well, then numpy creates a 2d array instead of 1d array of moves.
     
 HIGH LEVEL NOTES:
     
@@ -57,6 +57,7 @@ from importlib import reload
 import cProfile
 import time
 import itertools
+from collections import Counter
 
 
 import numpy as np
@@ -68,33 +69,56 @@ from game.tictactoe import TicTacToe as tct
 from game.reversi import Reversi
 from training_tools import train, TournamentGameSession
 from neural_network import TicTacToe_defaultNN as NN
+from training_tools import TrainingGameSession as TGS
 
-if __name__ == '__main__':
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    device = "cpu"
-    # net = NN(device).to(device)
+
+def generate_UCT_training_data(num_of_games, mcts_steps_per_move, temperature):
+    training_data = []
+    for _ in range(num_of_games):
+        state = tct.random_state()
+        TGS(state, random_playout_evaluator, training_data,
+            mcts_steps_per_move, 4.1, UCT_move_selector, temperature).run()
+    return training_data
+
+# a = tct.initial_state()
+# a = a.after((1,1,100),None)
+# a = a.after((0,0,101),None)
+# print(a)
+# a = a.after((0,1,100),None)
+# print(a)
+# a = a.after((1,0,101),None)
+# print(a)
+
+# tree =mcts(a, random_playout_evaluator, 10000, UCT_move_selector, 4.1, 1, return_type = 'tree')
+
+# t = tree._core_tree.as_treelib_tree()
+
+# if __name__ == '__main__':
+#     # device = "cuda" if torch.cuda.is_available() else "cpu"
+#     device = "cpu"
+#     # net = NN(device).to(device)
     
-    # train(tct, net, 100, modified_alphazero_selector, 100, 4, 160, 1.0, 10, 5e-2, 1, 4, device)
+#     # train(tct, net, 100, modified_alphazero_selector, 100, 4, 160, 1.0, 10, 5e-2, 1, 4, device)
     
-    net = torch.load('checkpointfinal.pt')
+#     net = torch.load('checkpointfinal.pt')
     
-    net_player = lambda state: mcts(state, net.as_evaluator(), 100,
-                modified_alphazero_selector)
+#     net_player = lambda state: mcts(state, net.as_evaluator(), 100,
+#                 modified_alphazero_selector)
     
-    random_player = lambda state: random.choice(state.moves())
+#     random_player = lambda state: random.choice(state.moves())
     
-    UCT_player = lambda state: mcts(state, random_playout_evaluator, 100,
-                                    modified_alphazero_selector)
+#     UCT_player = lambda state: mcts(state, random_playout_evaluator, 100,
+#                                     modified_alphazero_selector)
     
     
-    results = [{} for _ in range(100)]
+#     results = [{} for _ in range(100)]
     
-    for result in results:
-        TournamentGameSession(tct, {tct.O:net_player,
-                                    tct.X:UCT_player}, result).run()
+#     for result in results:
+#         TournamentGameSession(tct, {tct.O:net_player,
+#                                     tct.X:UCT_player}, result).run()
     
-    print('O = ' +str(sum(result[tct.O]>0.5 for result in results)))
-    print('X = ' +str(sum(result[tct.X]>0.5 for result in results)))
+#     print('O = ' +str(sum(result[tct.O]>0.5 for result in results)))
+#     print('X = ' +str(sum(result[tct.X]>0.5 for result in results)))
 
 
 # TODO
@@ -133,7 +157,9 @@ def play_tct():
         # Notify the spectator about what is happening
         print('\n\nComputer is thinking...')
         # Receive the move from the player (maybe some more data as well)
-        move = mcts(ga, random_playout_evaluator, 10000)
+        move = mcts(ga, random_playout_evaluator,
+                    10000, UCT_move_selector,
+                    4.1, 1)
         # Update the game
         ga = ga.after(move, None)
         # Notify the spectator
@@ -148,6 +174,9 @@ def play_tct():
             match = re.match('\d\d', in_)
             if match is None:
                 if in_ == 'e':
+                    globals()['last_game'] = ga
+                    return
+                if in_ == 'p':
                     break
                 print('Prompt not recognized.')
                 continue
