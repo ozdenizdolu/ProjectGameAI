@@ -27,7 +27,7 @@ class TicTacToe_defaultNN(nn.Module):
         )
         self.layer3_1 = nn.Sequential(
             nn.Linear(100, 9),
-            nn.Softmax(1),
+            nn.Softmax(dim = 1),
         )
         self.layer3_2 = nn.Sequential(
             nn.Linear(100, 1),
@@ -80,7 +80,7 @@ class TicTacToe_residualNN(nn.Module):
         self.layer2 = nn.Linear(27, 27)
         self.layer3_1 = nn.Sequential(
             nn.Linear(27, 9),
-            nn.Softmax(1),
+            nn.Softmax(dim = 1),
         )
         self.layer3_2 = nn.Sequential(
             nn.Linear(27, 1),
