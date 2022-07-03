@@ -125,10 +125,10 @@ def update_pool(pool, game_count, game, neural_network, mcts_steps_per_move,
 
 class TournamentGameSession(GameSessionTemplate):
     
-    def __init__(self, game, players, out_mapping):
+    def __init__(self, game, players, output):
         self._game = game
         self._players = players
-        self._out_mapping = out_mapping
+        self._output = output
     
     def initialize(self):
         self._state = self._game.initial_state()
@@ -144,10 +144,8 @@ class TournamentGameSession(GameSessionTemplate):
         self._state = self._state.after(move, None)
     
     def finalize(self):
-        results = self._state.game_final_evaluation()
-        
-        for player in self._players.keys():
-            self._out_mapping[player] = results[player]
+        result = self._state.game_final_evaluation()
+        self._output.append(result)
 
 
 class TrainingGameSession(GameSessionTemplate):

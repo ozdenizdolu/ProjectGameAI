@@ -33,6 +33,7 @@ class TicTacToe_defaultNN(nn.Module):
             nn.Linear(100, 1),
             nn.Tanh(),
         )
+    
     def forward(self, x):
         x = self.layer1(x)
         x = self.layer2(x)
@@ -64,9 +65,10 @@ class TicTacToe_defaultNN(nn.Module):
     # A helper function that is compatible with the evaluator protocol of the system
     def as_evaluator(self):
         def evaluator(state, legal_moves, player):
-            x = self.state_to_input(state)
+            x = self.state_to_input(state).unsqueeze(dim=0)
             out = self.forward(x)
-            return self.inv_translate_out(state, legal_moves, out)
+            return self.inv_translate_out(state, legal_moves,
+                        map(lambda x: x.squeeze(dim=0), out))
         return evaluator
 
 
@@ -80,7 +82,7 @@ class TicTacToe_residualNN(nn.Module):
         self.layer2 = nn.Linear(27, 27)
         self.layer3_1 = nn.Sequential(
             nn.Linear(27, 9),
-            nn.Softmax(dim = 1),
+            nn.Softmax(dim = 1)
         )
         self.layer3_2 = nn.Sequential(
             nn.Linear(27, 1),
@@ -119,7 +121,8 @@ class TicTacToe_residualNN(nn.Module):
     # A helper function that is compatible with the evaluator protocol of the system
     def as_evaluator(self):
         def evaluator(state, legal_moves, player):
-            x = self.state_to_input(state)
+            x = self.state_to_input(state).unsqueeze(dim=0)
             out = self.forward(x)
-            return self.inv_translate_out(state, legal_moves, out)
+            return self.inv_translate_out(state, legal_moves,
+                                          out.squeeze(dim=0))
         return evaluator

@@ -58,11 +58,11 @@ import cProfile
 import time
 import itertools
 from collections import Counter
-
+import pickle
+import math
 
 import numpy as np
 import torch
-
 
 from mcts import *
 from game.tictactoe import TicTacToe as tct
@@ -70,15 +70,125 @@ from game.reversi import Reversi
 from training_tools import train, TournamentGameSession
 from neural_network import TicTacToe_defaultNN as NN
 from training_tools import TrainingGameSession as TGS
+from training_tools import TournamentGameSession as ToGS
+
 
 
 def generate_UCT_training_data(num_of_games, mcts_steps_per_move, temperature):
     training_data = []
-    for _ in range(num_of_games):
+    for i in range(num_of_games):
         state = tct.random_state()
         TGS(state, random_playout_evaluator, training_data,
             mcts_steps_per_move, 4.1, UCT_move_selector, temperature).run()
+        print('{} / {} is comlete'.format(i, num_of_games))
     return training_data
+
+
+def load_UCT_data(neural_network = None):
+    """
+    Loads pre-prepared data generated using UCT for the tictactoe game.
+
+    Parameters
+    ----------
+    neural_network : neural network, optional
+        If a neural network which has compatible io with the tictactoe game
+        is provided, then the data is transformed into PyTorch tensors
+        suitable for being input and output to the network is returned.
+
+    Returns
+    -------
+    data : tuple
+        length of the tuple is 3. First element is training data, second
+        is test data and the third is validation data for the dataset.
+        Each data is a list of (state, distribution, evaluation) triples.
+        If neural network is provided then each data is a triplet of
+        tensors whose first dimension corresponds to the index of 
+        training examples.
+
+    """
+    with open('UCT_data.pickle', 'rb') as file:
+        data = pickle.load(file)
+        
+    if neural_network is None:
+        return data
+    
+    new_data = []
+    
+    for a_data in data:
+        a_data = [
+            (neural_network.state_to_input(state),
+             *neural_network.translate_out(move_distribution, evaluation))
+            for state, move_distribution, evaluation in a_data]
+        new_a_data = []
+        for i in range(3):
+            new_a_data.append(torch.cat(
+                [point[i].unsqueeze(dim=0) for point in a_data],
+                dim=0))
+        new_data.append(new_a_data)
+    
+    return tuple(new_data)
+
+
+
+def as_direct_player(evaluator):
+    return lambda state: random.choices(*zip(*evaluator(
+        state, state.moves(), state.turn())[0].items()))[0]
+
+
+def as_mcts_player(evaluator, mcts_steps, move_selector, exploration_constant,
+              temperature):
+    
+    return lambda state: mcts(state, evaluator, mcts_steps, move_selector,
+                              exploration_constant, temperature,
+                              return_type = 'move')
+
+
+def supervised_train(net, epochs):
+    
+    device = 'cpu'
+    
+    training_data, test_data, validation_data = load_UCT_data(net)
+    
+    x_data, dist_data, eval_data = training_data
+    
+    move_loss_function = torch.nn.CrossEntropyLoss()
+    eval_loss_function = torch.nn.MSELoss()
+    optimizer = torch.optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
+    
+    batch_size = 32
+    
+    num_of_batches = math.ceil(len(x_data)/32) * epochs
+    
+    # start training
+    net.train()
+    
+    for _ in range(num_of_batches):
+        example_indices = torch.tensor(random.sample(
+            range(x_data.shape[0]), batch_size))
+        batch = [torch.index_select(tensor, 0, example_indices)
+                 for tensor in (x_data, dist_data, eval_data)]
+        
+        x, dist_target, eval_target = batch
+        
+        net_dist, net_eval = net(x)
+        
+        dist_loss = move_loss_function(net_dist, dist_target)
+        eval_loss = eval_loss_function(net_eval, eval_target)
+        
+        loss = dist_loss + eval_loss
+        
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+        print("Mb complete. TLoss is: {}, MLoss is: {} ELoss is: {}".format(loss.item(), dist_loss.item(), eval_loss.item()))
+    
+    net.eval()
+
+        
+    
+    
+    
 
 # a = tct.initial_state()
 # a = a.after((1,1,100),None)
@@ -114,8 +224,8 @@ def generate_UCT_training_data(num_of_games, mcts_steps_per_move, temperature):
 #     results = [{} for _ in range(100)]
     
 #     for result in results:
-#         TournamentGameSession(tct, {tct.O:net_player,
-#                                     tct.X:UCT_player}, result).run()
+#        # TournamentGameSession(tct, {tct.O:net_player,# changed the function
+#                                    # tct.X:UCT_player}, result).run()
     
 #     print('O = ' +str(sum(result[tct.O]>0.5 for result in results)))
 #     print('X = ' +str(sum(result[tct.X]>0.5 for result in results)))
@@ -249,3 +359,16 @@ def play_reversi(mcts_steps = 1000):
     #Notify the spectator (maybe return other data as well).
     print('\n\nGame is over!\n\nThe results are:')
     print(ga.game_final_evaluation())
+
+
+net = NN('cpu')
+output = []
+
+
+
+
+
+
+
+
+
