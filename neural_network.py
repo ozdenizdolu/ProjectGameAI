@@ -1,10 +1,6 @@
 """
 
-
-
 """
-
-from abc import ABC, abstractmethod
 
 import torch
 import torch.nn.functional as F
@@ -40,6 +36,26 @@ class TicTacToe_defaultNN(nn.Module):
         x_moves = self.layer3_1(x)
         x_eval = self.layer3_2(x)
         return x_moves, x_eval
+    
+    def calculate_loss(self, data, dist_loss_fn=None, eval_loss_fn=None):
+        """
+        data is a triplet (x, dist_target, eval_target)
+        """
+        if dist_loss_fn is None:
+            dist_loss_fn = torch.nn.functional.cross_entropy
+        if eval_loss_fn is None:
+            eval_loss_fn = torch.nn.functional.mse_loss
+        
+        x, dist_target, eval_target = data
+        
+        dist_net, eval_net = self(x)
+        
+        return (dist_loss_fn(dist_net, dist_target),
+                eval_loss_fn(eval_net, eval_target))
+        
+        
+        
+        
 
     # Converts the game state object to input of neural network
     def state_to_input(self, state):
@@ -72,57 +88,57 @@ class TicTacToe_defaultNN(nn.Module):
         return evaluator
 
 
-class TicTacToe_residualNN(nn.Module):
+# class TicTacToe_residualNN(nn.Module):
     
-    def __init__(self, current_device):
-        super(TicTacToe_residualNN, self).__init__()
-        self._current_device = current_device
-        self.relu = nn.ReLU()
-        self.layer1 = nn.Linear(27, 27)
-        self.layer2 = nn.Linear(27, 27)
-        self.layer3_1 = nn.Sequential(
-            nn.Linear(27, 9),
-            nn.Softmax(dim = 1)
-        )
-        self.layer3_2 = nn.Sequential(
-            nn.Linear(27, 1),
-            nn.Tanh(),
-        )
-    def forward(self, x):
-        x_1 = self.layer1(x)
-        x_1 = self.relu(x_1)
-        x_2 = self.layer2(x_1) + x
-        x_2 = self.relu(x_2)
-        x_moves = self.layer3_1(x_2)
-        x_eval = self.layer3_2(x_2)
-        return x_moves, x_eval
+#     def __init__(self, current_device):
+#         super(TicTacToe_residualNN, self).__init__()
+#         self._current_device = current_device
+#         self.relu = nn.ReLU()
+#         self.layer1 = nn.Linear(27, 27)
+#         self.layer2 = nn.Linear(27, 27)
+#         self.layer3_1 = nn.Sequential(
+#             nn.Linear(27, 9),
+#             nn.Softmax(dim = 1)
+#         )
+#         self.layer3_2 = nn.Sequential(
+#             nn.Linear(27, 1),
+#             nn.Tanh(),
+#         )
+#     def forward(self, x):
+#         x_1 = self.layer1(x)
+#         x_1 = self.relu(x_1)
+#         x_2 = self.layer2(x_1) + x
+#         x_2 = self.relu(x_2)
+#         x_moves = self.layer3_1(x_2)
+#         x_eval = self.layer3_2(x_2)
+#         return x_moves, x_eval
 
-    # Converts the game state object to input of neural network
-    def state_to_input(self, state):
-        return tr.state_translator(state).to(self._current_device)
+#     # Converts the game state object to input of neural network
+#     def state_to_input(self, state):
+#         return tr.state_translator(state).to(self._current_device)
     
-    # Converts the output of the neural network to be compatible 
-    # with the rest of the system
-    def inv_translate_out(self, state, legal_moves, output):
-        move, ev = output
-        return (
-            tr.inv_move_translator(state, legal_moves, move), 
-            tr.inv_evaluation_translator(ev)
-        )
+#     # Converts the output of the neural network to be compatible 
+#     # with the rest of the system
+#     def inv_translate_out(self, state, legal_moves, output):
+#         move, ev = output
+#         return (
+#             tr.inv_move_translator(state, legal_moves, move), 
+#             tr.inv_evaluation_translator(ev)
+#         )
     
-    # Converts the prior probability distributions and evaluations
-    # coming from the system to the same types as the neural network output
-    def translate_out(self, move_distribution, evaluation):
-        return (
-            tr.move_translator(move_distribution), 
-            tr.evaluation_translator(evaluation)
-        )
+#     # Converts the prior probability distributions and evaluations
+#     # coming from the system to the same types as the neural network output
+#     def translate_out(self, move_distribution, evaluation):
+#         return (
+#             tr.move_translator(move_distribution), 
+#             tr.evaluation_translator(evaluation)
+#         )
     
-    # A helper function that is compatible with the evaluator protocol of the system
-    def as_evaluator(self):
-        def evaluator(state, legal_moves, player):
-            x = self.state_to_input(state).unsqueeze(dim=0)
-            out = self.forward(x)
-            return self.inv_translate_out(state, legal_moves,
-                                          out.squeeze(dim=0))
-        return evaluator
+#     # A helper function that is compatible with the evaluator protocol of the system
+#     def as_evaluator(self):
+#         def evaluator(state, legal_moves, player):
+#             x = self.state_to_input(state).unsqueeze(dim=0)
+#             out = self.forward(x)
+#             return self.inv_translate_out(state, legal_moves,
+#                                           out.squeeze(dim=0))
+#         return evaluator

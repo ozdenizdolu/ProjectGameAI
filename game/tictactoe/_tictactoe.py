@@ -17,6 +17,8 @@ class TicTacToe:
     
     _name_dict = {X:'X', O: 'O', empty: '_'}
     
+    players = [X,O]
+    
     @classmethod
     def _other_player(cls, player):
         assert player in {TicTacToe.X, TicTacToe.O}

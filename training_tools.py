@@ -125,10 +125,9 @@ def update_pool(pool, game_count, game, neural_network, mcts_steps_per_move,
 
 class TournamentGameSession(GameSessionTemplate):
     
-    def __init__(self, game, players, output):
+    def __init__(self, game, agent_dict):
         self._game = game
-        self._players = players
-        self._output = output
+        self._agent_dict = agent_dict
     
     def initialize(self):
         self._state = self._game.initial_state()
@@ -137,15 +136,14 @@ class TournamentGameSession(GameSessionTemplate):
         return self._state
 
     def proceed(self, player):
-        move = self._players[player](self._state)
+        move = self._agent_dict[player].ask(self._state)
         if move not in self._state.moves():
             raise ValueError('Player {} attempted an illegal move...'.format(
                 player))
         self._state = self._state.after(move, None)
     
-    def finalize(self):
-        result = self._state.game_final_evaluation()
-        self._output.append(result)
+    def return_value(self):
+        return self._state.game_final_evaluation()
 
 
 class TrainingGameSession(GameSessionTemplate):

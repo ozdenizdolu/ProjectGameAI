@@ -6,7 +6,7 @@ Created on Fri Jun 10 01:31:25 2022
 import math
 import random
 
-from .miscellaneous import after
+from miscellaneous import after
 from .game_state_memorizer import GameStateMemorizer
 from .core_search_tree import CoreSearchTree, CoreSearchNode
 from .search_tree import SearchTree

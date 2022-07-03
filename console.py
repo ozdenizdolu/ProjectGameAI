@@ -71,8 +71,53 @@ from training_tools import train, TournamentGameSession
 from neural_network import TicTacToe_defaultNN as NN
 from training_tools import TrainingGameSession as TGS
 from training_tools import TournamentGameSession as ToGS
+from game_session import GameSessionTemplate
+from agent import agents
 
+uct_agent = agents.UCTAgent(10000, temperature = 1)
+random_agent = agents.RandomAgent()
 
+class ConsoleGameSession(GameSessionTemplate):
+    
+    def __init__(self, state, agent_dict, delay = 1):
+        self._state = state
+        self._agent_dict = agent_dict
+        self._delay = delay
+        self._history = [self._state]
+        
+    def current_state(self):
+        return self._state
+    
+    def proceed(self, player):
+        time.sleep(self._delay)
+        agent = self._agent_dict[player]
+        print('Agent {} as {} is thinking...\n'.format(
+            str(agent), str(player)))
+        move = agent.ask(self.current_state())
+        if move not in self.current_state().moves():
+            raise RuntimeError('Agent {} committed an illegal move...'.format(
+                agent))
+        self._state = self._state.after(move, None)
+        print('Agent {} has played {}\n'.format(str(agent), str(move)))
+        print('Current Game State:\n{}'.format(str(self._state)))
+        self._history.append(self._state)
+    
+    def initialize(self):
+        print('The game is starting...\n')
+        print('The agents play as:')
+        for player, agent in self._agent_dict.items():
+            print('{} plays as {}'.format(str(agent), str(player)))
+    
+    def finalize(self):
+        print('The game has ended.\n{}\n'.format(str(self._state)))
+        print('''The results are: 
+              \n{}'''.format(str(self._state.game_final_evaluation())))
+        print('The agents play as:')
+        for player, agent in self._agent_dict.items():
+            print('{} plays as {}'.format(str(agent), str(player)))
+    
+    def return_value(self):
+        return self._history
 
 def generate_UCT_training_data(num_of_games, mcts_steps_per_move, temperature):
     training_data = []
@@ -130,17 +175,17 @@ def load_UCT_data(neural_network = None):
 
 
 
-def as_direct_player(evaluator):
-    return lambda state: random.choices(*zip(*evaluator(
-        state, state.moves(), state.turn())[0].items()))[0]
+# def as_direct_player(evaluator):
+#     return lambda state: random.choices(*zip(*evaluator(
+#         state, state.moves(), state.turn())[0].items()))[0]
 
 
-def as_mcts_player(evaluator, mcts_steps, move_selector, exploration_constant,
-              temperature):
+# def as_mcts_player(evaluator, mcts_steps, move_selector, exploration_constant,
+#               temperature):
     
-    return lambda state: mcts(state, evaluator, mcts_steps, move_selector,
-                              exploration_constant, temperature,
-                              return_type = 'move')
+#     return lambda state: mcts(state, evaluator, mcts_steps, move_selector,
+#                               exploration_constant, temperature,
+#                               return_type = 'move')
 
 
 def supervised_train(net, epochs):
@@ -151,8 +196,8 @@ def supervised_train(net, epochs):
     
     x_data, dist_data, eval_data = training_data
     
-    move_loss_function = torch.nn.CrossEntropyLoss()
-    eval_loss_function = torch.nn.MSELoss()
+    move_loss_function = torch.nn.functional.cross_entropy
+    eval_loss_function = torch.nn.functional.mse_loss
     optimizer = torch.optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
     
     batch_size = 32
@@ -185,10 +230,6 @@ def supervised_train(net, epochs):
     
     net.eval()
 
-        
-    
-    
-    
 
 # a = tct.initial_state()
 # a = a.after((1,1,100),None)
@@ -359,11 +400,6 @@ def play_reversi(mcts_steps = 1000):
     #Notify the spectator (maybe return other data as well).
     print('\n\nGame is over!\n\nThe results are:')
     print(ga.game_final_evaluation())
-
-
-net = NN('cpu')
-output = []
-
 
 
 
