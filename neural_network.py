@@ -27,7 +27,7 @@ class TicTacToe_defaultNN(nn.Module):
         )
         self.layer3_1 = nn.Sequential(
             nn.Linear(100, 9),
-            nn.Softmax(0),
+            nn.Softmax(1),
         )
         self.layer3_2 = nn.Sequential(
             nn.Linear(100, 1),
@@ -75,17 +75,12 @@ class TicTacToe_residualNN(nn.Module):
     def __init__(self, current_device):
         super(TicTacToe_residualNN, self).__init__()
         self._current_device = current_device
-        self.layer1 = nn.Sequential(
-            nn.Linear(27, 27),
-            nn.ReLU(),
-        )
-        self.layer2 = nn.Sequential(
-            nn.Linear(27, 27),
-            nn.ReLU(),
-        )
+        self.relu = nn.ReLU()
+        self.layer1 = nn.Linear(27, 27)
+        self.layer2 = nn.Linear(27, 27)
         self.layer3_1 = nn.Sequential(
             nn.Linear(27, 9),
-            nn.Softmax(0),
+            nn.Softmax(1),
         )
         self.layer3_2 = nn.Sequential(
             nn.Linear(27, 1),
@@ -93,9 +88,11 @@ class TicTacToe_residualNN(nn.Module):
         )
     def forward(self, x):
         x_1 = self.layer1(x)
-        x_2 = self.layer2(x_1 + x)
-        x_moves = self.layer3_1(x_2 + x)
-        x_eval = self.layer3_2(x_2 + x)
+        x_1 = self.relu(x_1)
+        x_2 = self.layer2(x_1) + x
+        x_2 = self.relu(x_2)
+        x_moves = self.layer3_1(x_2)
+        x_eval = self.layer3_2(x_2)
         return x_moves, x_eval
 
     # Converts the game state object to input of neural network
