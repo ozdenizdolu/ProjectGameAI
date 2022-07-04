@@ -116,8 +116,10 @@ def update_pool(pool, game_count, game, neural_network, mcts_steps_per_move,
             temperature).run()
         
         game_data = [
-            (neural_network.state_to_input(state),
-             neural_network.translate_out(move_distribution, evaluation))
+            (neural_network.states_to_tensor([state]).squeeze(0),
+             (neural_network.dists_to_tensor([move_distribution]).squeeze(0), 
+             neural_network.evals_to_tensor([evaluation]).squeeze(0))
+             )
             for state, move_distribution, evaluation in game_data]
         
         pool.append(game_data)

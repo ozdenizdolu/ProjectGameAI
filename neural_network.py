@@ -53,18 +53,46 @@ class TicTacToe_defaultNN(nn.Module):
         return (dist_loss_fn(dist_net, dist_target),
                 eval_loss_fn(eval_net, eval_target))
         
-        
-        
-        
-
-    # Gets a list of game states and returns a batch of valid inputs to network, sent to the same device 
+         
     def states_to_tensor(self, states):
+        """
+        Returns a tensor of valid network inputs from a list of game states (sent to the same device as the network)
+
+        Parameters
+        ----------
+        states : list
+            A list of TicTacToeState's.
+
+        Returns
+        -------
+        tensor
+            A two dimensional tensor whose 0th dimension is the same size as len(states)
+        """
+        if type(states) != type([]):
+            raise TypeError("states should be a list")
         return torch.cat([tr.state_to_tensor(state).unsqueeze(0) for state in states],
                          dim=0).to(self._current_device)
     
-    # Converts the move distribution output of the neural network
-    # to be compatible with the rest of the system
+
     def tensor_to_dists(self, states, legal_moves_list, moves_tensor):
+        """
+        Returns a list of move distribution dictionaries from the given move distributions tensor. 
+        Move distributions tensor is assumed to be the output of the network.
+
+        Parameters
+        ----------
+        states : list
+            A list of TicTacToeState's. Each state in this list is associated with the corresponding move distribution in the moves_tensor.
+        legal_moves_list : list
+            A list of list of legal moves for each state in states.
+        moves_tensor: tensor
+            A two dimensional tensor where each move distribution is indexed by the 0th dimension.
+
+        Returns
+        -------
+        list
+            A list of move distribution dictionaries.
+        """
         if moves_tensor.ndim != 2:
             raise ValueError("moves_tensor should have 2 dimensions")
         if len(states) != len(legal_moves_list):
@@ -151,7 +179,7 @@ class TicTacToe_residualNN(nn.Module):
         
         return (dist_loss_fn(dist_net, dist_target),
                 eval_loss_fn(eval_net, eval_target))
-                
+
     # Gets a list of game states and returns a batch of valid inputs to network, sent to the same device 
     def states_to_tensor(self, states):
         return torch.cat([tr.state_to_tensor(state).unsqueeze(0) for state in states],
