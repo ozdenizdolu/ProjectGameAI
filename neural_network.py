@@ -127,9 +127,9 @@ class TicTacToe_defaultNN(nn.Module):
     def as_evaluator(self):
         def evaluator(state, legal_moves, player):
             x = tr.state_to_tensor(state).unsqueeze(dim=0)
-            move_dist, eval = self.forward(x)
-            return (tr.tensor_to_dist(move_dist.squeeze(0)), 
-                    tr.tensor_to_eval(eval.squeeze(0)))
+            move_dist, evaluation = self.forward(x)
+            return (tr.tensor_to_dist(state, legal_moves, move_dist.squeeze(0)), 
+                    tr.tensor_to_eval(evaluation.squeeze(0)))
         return evaluator
     
     def translate_data(self, data):
@@ -225,7 +225,7 @@ class TicTacToe_residualNN(nn.Module):
     def as_evaluator(self):
         def evaluator(state, legal_moves, player):
             x = tr.state_to_tensor(state).unsqueeze(dim=0)
-            move_dist, eval = self.forward(x)
-            return (tr.tensor_to_dist(move_dist.squeeze(0)), 
-                    tr.tensor_to_eval(eval.squeeze(0)))
+            move_dist, evaluation = self.forward(x)
+            return (tr.tensor_to_dist(state, legal_moves, move_dist.squeeze(0)), 
+                    tr.tensor_to_eval(evaluation.squeeze(0)))
         return evaluator

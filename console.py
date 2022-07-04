@@ -86,14 +86,12 @@ with open('tct_all_UCT_data.pickle','rb') as file:
     raw_data = pickle.load(file)
     random.shuffle(raw_data)
     
-def printt():
-    print('trd:\nDistribution: {}\nEvaluation:{}\n\n'.format(*net.calculate_loss(trd)))
-    print('vad:\nDistribution: {}\nEvaluation:{}\n\n'.format(*net.calculate_loss(vad)))
-
+with open('network_prepared_data_temp.pickle','rb') as file:
+    trd, ted, vad = pickle.load(file)
 
 class ConsoleGameSession(GameSessionTemplate):
     
-    def __init__(self, state, agent_dict, delay = 1):
+    def __init__(self, state, agent_dict, * , delay = 0.6):
         self._state = state
         self._agent_dict = agent_dict
         self._delay = delay
@@ -238,7 +236,8 @@ def supervised_train(net, epochs, data):
     
     move_loss_function = torch.nn.functional.cross_entropy
     eval_loss_function = torch.nn.functional.mse_loss
-    optimizer = torch.optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
+    optimizer = torch.optim.SGD(net.parameters(), lr=0.01, momentum=0.9,
+                                weight_decay=10**-4)
     
     batch_size = 32
     
