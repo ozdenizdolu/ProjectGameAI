@@ -40,7 +40,22 @@ class TicTacToe:
             #TODO
             if not state.is_game_over():
                 return state
+    
+    @classmethod
+    def all_states(cls):
+        states = []
         
+        for raw_board, turn in itertools.product(
+                itertools.product([TicTacToe.empty, TicTacToe.X, TicTacToe.O],
+                                  repeat = 9),
+                [TicTacToe.X, TicTacToe.O]):
+            board = np.array(raw_board).reshape(3,3)
+            new_state = TicTacToeState(board, turn)
+            states.append(new_state)
+        
+        return states
+            
+            
 
 class TicTacToeState:
     

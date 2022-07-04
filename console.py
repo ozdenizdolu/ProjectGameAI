@@ -77,6 +77,9 @@ from agent import agents
 uct_agent = agents.UCTAgent(10000, temperature = 1)
 random_agent = agents.RandomAgent()
 
+# net = NN('cpu')
+# trd, ted, vad = load_UCT_data(net)
+
 class ConsoleGameSession(GameSessionTemplate):
     
     def __init__(self, state, agent_dict, delay = 1):
@@ -118,6 +121,33 @@ class ConsoleGameSession(GameSessionTemplate):
     
     def return_value(self):
         return self._history
+    
+def generate_all_UCT_data(mcts_steps, temp,
+                          stop_at = math.inf, results = None):
+    if results is None:
+        results = {}
+    all_states = tct.all_states()
+    # random.shuffle(all_states) not shuffling is better to see empty pos first
+    for state in all_states:
+        if len(results) > stop_at:
+            break
+        if state in results:
+            continue
+        # Not previously explored
+        data_to_end = []
+        TGS(state, random_playout_evaluator, data_to_end,
+            mcts_steps, 4.1, UCT_move_selector, temp).run()
+        for state, dist, evaluation in data_to_end:
+            if state not in results:
+                results[state] = (dist, evaluation)
+        print('''An iteration complete, {} new(!) states, total of {} states.
+              '''.format(len(data_to_end), len(results)))
+    
+    return [(state, distribution, evaluation)
+                for state, out in results.items()
+                for distribution, evaluation in [out]]
+            
+    
 
 def generate_UCT_training_data(num_of_games, mcts_steps_per_move, temperature):
     training_data = []
