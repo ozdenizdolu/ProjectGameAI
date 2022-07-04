@@ -77,8 +77,19 @@ from agent import agents
 uct_agent = agents.UCTAgent(10000, temperature = 1)
 random_agent = agents.RandomAgent()
 
-# net = NN('cpu')
-# trd, ted, vad = load_UCT_data(net)
+cross_ent = torch.nn.functional.cross_entropy
+mse_loss = torch.nn.functional.mse_loss
+
+net = NN('cpu')
+
+with open('tct_all_UCT_data.pickle','rb') as file:
+    raw_data = pickle.load(file)
+    random.shuffle(raw_data)
+    
+def printt():
+    print('trd:\nDistribution: {}\nEvaluation:{}\n\n'.format(*net.calculate_loss(trd)))
+    print('vad:\nDistribution: {}\nEvaluation:{}\n\n'.format(*net.calculate_loss(vad)))
+
 
 class ConsoleGameSession(GameSessionTemplate):
     
@@ -219,13 +230,11 @@ def load_UCT_data(neural_network = None):
 #                               return_type = 'move')
 
 
-def supervised_train(net, epochs):
+def supervised_train(net, epochs, data):
     
     device = 'cpu'
     
-    training_data, test_data, validation_data = load_UCT_data(net)
-    
-    x_data, dist_data, eval_data = training_data
+    x_data, dist_data, eval_data = data
     
     move_loss_function = torch.nn.functional.cross_entropy
     eval_loss_function = torch.nn.functional.mse_loss

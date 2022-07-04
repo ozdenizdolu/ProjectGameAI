@@ -68,8 +68,6 @@ class TicTacToe_defaultNN(nn.Module):
         tensor
             A two dimensional tensor whose 0th dimension is the same size as len(states)
         """
-        if type(states) != type([]):
-            raise TypeError("states should be a list")
         return torch.cat([tr.state_to_tensor(state).unsqueeze(0) for state in states],
                          dim=0).to(self._current_device)
     
@@ -114,8 +112,6 @@ class TicTacToe_defaultNN(nn.Module):
     def dists_to_tensor(self, move_distributions, device = None):
         if device == None:
             device = self._current_device
-        if type(move_distributions) != type([]):
-            raise TypeError("move_distributions should be a list")
         return torch.cat([tr.dist_to_tensor(move_dist).unsqueeze(0) for move_dist in move_distributions],
                         dim=0).to(device)
     
@@ -124,8 +120,6 @@ class TicTacToe_defaultNN(nn.Module):
     def evals_to_tensor(self, evaluations, device = None):
         if device == None:
             device = self._current_device
-        if type(evaluations) != type([]):
-            raise TypeError("evaluations should be a list")
         return torch.cat([tr.eval_to_tensor(evaluation).unsqueeze(0) for evaluation in evaluations],
                         dim=0).to(device)
     
@@ -137,6 +131,13 @@ class TicTacToe_defaultNN(nn.Module):
             return (tr.tensor_to_dist(move_dist.squeeze(0)), 
                     tr.tensor_to_eval(eval.squeeze(0)))
         return evaluator
+    
+    def translate_data(self, data):
+        states, dists, evals = zip(*data)
+        return (self.states_to_tensor(states),
+                self.dists_to_tensor(dists),
+                self.evals_to_tensor(evals))
+            
 
 
 class TicTacToe_residualNN(nn.Module):
@@ -209,8 +210,6 @@ class TicTacToe_residualNN(nn.Module):
     def dists_to_tensor(self, move_distributions, device = None):
         if device == None:
             device = self._current_device
-        if type(move_distributions) != type([]):
-            raise TypeError("move_distributions should be a list")
         return torch.cat([tr.dist_to_tensor(move_dist).unsqueeze(0) for move_dist in move_distributions],
                         dim=0).to(device)
     
@@ -219,8 +218,6 @@ class TicTacToe_residualNN(nn.Module):
     def evals_to_tensor(self, evaluations, device = None):
         if device == None:
             device = self._current_device
-        if type(evaluations) != type([]):
-            raise TypeError("evaluations should be a list")
         return torch.cat([tr.eval_to_tensor(evaluation).unsqueeze(0) for evaluation in evaluations],
                         dim=0).to(device)
     
