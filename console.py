@@ -191,13 +191,14 @@ def load_UCT_data(neural_network = None):
     
     for a_data in data:
         a_data = [
-            (neural_network.state_to_input(state),
-             *neural_network.translate_out(move_distribution, evaluation))
+            (neural_network.states_to_tensor([state]),
+             neural_network.dists_to_tensor([move_distribution]),
+             neural_network.evals_to_tensor([evaluation]))
             for state, move_distribution, evaluation in a_data]
         new_a_data = []
         for i in range(3):
             new_a_data.append(torch.cat(
-                [point[i].unsqueeze(dim=0) for point in a_data],
+                [point[i] for point in a_data],
                 dim=0))
         new_data.append(new_a_data)
     
