@@ -1,3 +1,9 @@
+agent
+-----
+
+An object capable of playing games. An agent implements
+ask(game state) funtion which returns the move selected by the agent.
+
 evaluation
 ----------
 

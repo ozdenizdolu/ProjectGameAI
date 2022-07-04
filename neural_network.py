@@ -1,10 +1,6 @@
 """
 
-
-
 """
-
-from abc import ABC, abstractmethod
 
 import torch
 import torch.nn.functional as F
@@ -40,6 +36,26 @@ class TicTacToe_defaultNN(nn.Module):
         x_moves = self.layer3_1(x)
         x_eval = self.layer3_2(x)
         return x_moves, x_eval
+    
+    def calculate_loss(self, data, dist_loss_fn=None, eval_loss_fn=None):
+        """
+        data is a triplet (x, dist_target, eval_target)
+        """
+        if dist_loss_fn is None:
+            dist_loss_fn = torch.nn.functional.cross_entropy
+        if eval_loss_fn is None:
+            eval_loss_fn = torch.nn.functional.mse_loss
+        
+        x, dist_target, eval_target = data
+        
+        dist_net, eval_net = self(x)
+        
+        return (dist_loss_fn(dist_net, dist_target),
+                eval_loss_fn(eval_net, eval_target))
+        
+        
+        
+        
 
     # Gets a list of game states and returns a batch of valid inputs to network, sent to the same device 
     def states_to_tensor(self, states):
@@ -120,6 +136,22 @@ class TicTacToe_residualNN(nn.Module):
         x_eval = self.layer3_2(x_2)
         return x_moves, x_eval
 
+    def calculate_loss(self, data, dist_loss_fn=None, eval_loss_fn=None):
+        """
+        data is a triplet (x, dist_target, eval_target)
+        """
+        if dist_loss_fn is None:
+            dist_loss_fn = torch.nn.functional.cross_entropy
+        if eval_loss_fn is None:
+            eval_loss_fn = torch.nn.functional.mse_loss
+        
+        x, dist_target, eval_target = data
+        
+        dist_net, eval_net = self(x)
+        
+        return (dist_loss_fn(dist_net, dist_target),
+                eval_loss_fn(eval_net, eval_target))
+                
     # Gets a list of game states and returns a batch of valid inputs to network, sent to the same device 
     def states_to_tensor(self, states):
         return torch.cat([tr.state_to_tensor(state).unsqueeze(0) for state in states],

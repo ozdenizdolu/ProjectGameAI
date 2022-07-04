@@ -5,11 +5,6 @@ Created on Fri Jun 10 01:03:16 2022
 
 import random
 
-# from numpy.random import default_rng
-
-
-# rng = default_rng()
-
 
 class GameStateMemorizer:
     '''
