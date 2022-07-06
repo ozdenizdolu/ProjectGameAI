@@ -19,19 +19,31 @@ class TicTacToe_defaultNN(nn.Module):
         self._current_device = current_device
         
         self.body = nn.Sequential(
-            nn.Linear(27, 100),
+            nn.Linear(27, 50),
             nn.ReLU(),
-            nn.Linear(100, 100),
-            nn.ReLU()
+            nn.Linear(50, 50),
+            nn.ReLU(),
+            nn.Linear(50, 50),
+            nn.ReLU(),
+            nn.Linear(50, 50),
+            nn.ReLU(),
             )
     
         self.dist_head = nn.Sequential(
-            nn.Linear(100, 9),
-            nn.Softmax(dim = 1)
+            nn.Linear(50, 50),
+            nn.ReLU(),
+            nn.Linear(50, 30),
+            nn.ReLU(),
+            nn.Linear(30, 9),
+            nn.Softmax(dim=1)
             )
         
         self.eval_head = nn.Sequential(
-            nn.Linear(100, 1),
+            nn.Linear(50, 50),
+            nn.ReLU(),
+            nn.Linear(50, 30),
+            nn.ReLU(),
+            nn.Linear(30, 1),
             nn.Tanh()
             )
         
@@ -39,108 +51,6 @@ class TicTacToe_defaultNN(nn.Module):
         x = self.body(x)
         return self.dist_head(x), self.eval_head(x)
     
-    def calculate_loss(self, data, dist_loss_fn=None, eval_loss_fn=None):
-        """
-        data is a triplet (x, dist_target, eval_target)
-        """
-        if dist_loss_fn is None:
-            dist_loss_fn = torch.nn.functional.cross_entropy
-        if eval_loss_fn is None:
-            eval_loss_fn = torch.nn.functional.mse_loss
-        
-        x, dist_target, eval_target = data
-        
-        dist_net, eval_net = self(x)
-        
-        return (dist_loss_fn(dist_net, dist_target),
-                eval_loss_fn(eval_net, eval_target))
-        
-         
-    def states_to_tensor(self, states):
-        """
-        Returns a tensor of valid network inputs from a list of game states (sent to the same device as the network)
-
-        Parameters
-        ----------
-        states : list
-            A list of TicTacToeState's.
-
-        Returns
-        -------
-        tensor
-            A two dimensional tensor whose 0th dimension is the same size as len(states)
-        """
-        return torch.cat([tr.state_to_tensor(state).unsqueeze(0) for state in states],
-                         dim=0).to(self._current_device)
-    
-
-    def tensor_to_dists(self, states, legal_moves_list, moves_tensor):
-        """
-        Returns a list of move distribution dictionaries from the given move distributions tensor. 
-        Move distributions tensor is assumed to be the output of the network.
-
-        Parameters
-        ----------
-        states : list
-            A list of TicTacToeState's. Each state in this list is associated with the corresponding move distribution in the moves_tensor.
-        legal_moves_list : list
-            A list of list of legal moves for each state in states.
-        moves_tensor: tensor
-            A two dimensional tensor where each move distribution is indexed by the 0th dimension.
-
-        Returns
-        -------
-        list
-            A list of move distribution dictionaries.
-        """
-        if moves_tensor.ndim != 2:
-            raise ValueError("moves_tensor should have 2 dimensions")
-        if len(states) != len(legal_moves_list):
-            raise ValueError("len(states) should be equal to len(legal_moves_list")
-        if len(states) != moves_tensor.shape[0]:
-            raise ValueError("len(states) should be equal to size of 0th dimension of moves_tensor")
-        return [tr.tensor_to_dist(states[i], legal_moves_list[i], moves_tensor[i])
-                for i in range(len(states))]
-
-    # Converts the evaluation output of the neural network 
-    # to be compatible with the rest of the system
-    def tensor_to_evals(self, evals_tensor):
-        if evals_tensor.ndim != 2:
-            raise ValueError("evals_tensor should have 2 dimensions")
-        return [tr.tensor_to_eval(evals_tensor[i]) for i in range(evals_tensor.shape[0])]
-    
-    # Converts the list of move_distributions to the same type as 
-    # the neural network output move_distributions
-    def dists_to_tensor(self, move_distributions, device = None):
-        if device == None:
-            device = self._current_device
-        return torch.cat([tr.dist_to_tensor(move_dist).unsqueeze(0) for move_dist in move_distributions],
-                        dim=0).to(device)
-    
-    # Converts the list of evaluations to the same type as 
-    # the neural network output evaluations
-    def evals_to_tensor(self, evaluations, device = None):
-        if device == None:
-            device = self._current_device
-        return torch.cat([tr.eval_to_tensor(evaluation).unsqueeze(0) for evaluation in evaluations],
-                        dim=0).to(device)
-    
-    # A helper function that is compatible with the evaluator protocol of the system
-    def as_evaluator(self):
-        def evaluator(state, legal_moves, player):
-            x = tr.state_to_tensor(state).unsqueeze(dim=0)
-            move_dist, evaluation = self.forward(x)
-            return (tr.tensor_to_dist(state, legal_moves, move_dist.squeeze(0)), 
-                    tr.tensor_to_eval(evaluation.squeeze(0)))
-        return evaluator
-    
-    def translate_data(self, data):
-        states, dists, evals = zip(*data)
-        return (self.states_to_tensor(states),
-                self.dists_to_tensor(dists),
-                self.evals_to_tensor(evals))
-            
-
 
 # class TicTacToe_residualNN(nn.Module):
     

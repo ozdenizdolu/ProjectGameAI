@@ -39,7 +39,11 @@ def tensor_to_dist(state, legal_moves, move_tensor):
             for move in legal_moves}
     normalization_constant = sum(value for value in temp.values())
     if normalization_constant <= 0:
-        raise ValueError("No probability on valid moves.")
+        raise ValueError('''The sum of probabilities 
+                         of legal moves is {}. The number of legal moves is {}.
+                         state.is_game_over() returns {}
+                         '''.format(normalization_constant,
+                         len(legal_moves), state.is_game_over()))
     
     return {move: value/normalization_constant for move, value in temp.items()}
     

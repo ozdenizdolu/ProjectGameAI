@@ -1,5 +1,6 @@
 import math
 import random
+import torch
 
 def after(f,g):
     return lambda x: f(g(x))
@@ -47,3 +48,32 @@ class PDist:
             return item in self._dict
         else:
             return item in self.items
+
+  
+def cross_entropy(output, target):
+    """
+    Return the cross entropy of output distribution relative to target
+    distribution.
+    
+    Output and target is assumed to be of shape (N, M) where 
+    the first dimension is the index of each distinct problem. The function
+    computes the cross entropy for each N probability distributions and
+    returns the mean
+    
+    Parameters
+    ----------
+    output : tensor
+        The probability distribution used to approximate the target.
+    target : tensor
+        The ground truth.
+
+    Returns
+    -------
+    The cross entropy in the form of tensor.
+
+    """
+    epsilon = torch.ones_like(output)*(10**-20)
+    
+    return (-1.) * torch.mean(
+        torch.sum(torch.log(output + epsilon) * target, dim = 1),
+        dim = 0)

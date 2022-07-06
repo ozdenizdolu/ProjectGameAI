@@ -63,11 +63,15 @@ class EvaluatorAgent:
             evaluation_part = {}
             for move in state.moves():
                 selected_state = state.after(move, None)
-                evaluation_part[move] = (self._evaluator(selected_state,
-                                           selected_state.moves(),
-                                           selected_state.turn())[1][
-                                               state.turn()] + 1.)/2.
-                if evaluation_part[move] < 0 or evaluation_part[move] > 1:
+                if selected_state.is_game_over():
+                    raw_evaluation = state.game_final_evaluation()[state.turn()]
+                else:
+                    raw_evaluation = (self._evaluator(selected_state,
+                                               selected_state.moves(),
+                                               selected_state.turn())[1][
+                                                   state.turn()])
+                evaluation_part[move] = 10**-8 + (raw_evaluation + 1.) / 2.
+                if evaluation_part[move] < 0 or evaluation_part[move] > 1+10**-7:
                     raise RuntimeError('''{} agent does not provide evaluation
                                        between -1 and 1'''.format(self))
             evaluation_part = PDist(*zip(*evaluation_part.items()),

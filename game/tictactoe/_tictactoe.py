@@ -4,6 +4,7 @@ This module provides the game logic of the game TicTacToe.
 
 import itertools
 import random
+import re
 
 import numpy as np
 from numpy.random import default_rng
@@ -16,6 +17,7 @@ class TicTacToe:
     OUTCOME = 1462198
     
     _name_dict = {X:'X', O: 'O', empty: '_'}
+    _inv_name_dict = {value: key for key,value in _name_dict.items()}
     
     players = [X,O]
     
@@ -54,8 +56,15 @@ class TicTacToe:
             states.append(new_state)
         
         return states
-            
-            
+    
+    @classmethod
+    def from_string(cls, string):
+        raw_board = list(re.findall(r'[XO_]', string))[0:9]
+        raw_board = [TicTacToe._inv_name_dict[s] for s in raw_board]
+        board = np.array(raw_board).reshape(3,3)
+        turn_str = re.search(r'turn: (.)', string).group(1)
+        turn = TicTacToe._inv_name_dict[turn_str]
+        return TicTacToeState(board, turn)
 
 class TicTacToeState:
     

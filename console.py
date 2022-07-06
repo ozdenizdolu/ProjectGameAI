@@ -16,6 +16,10 @@ PROJECT COMMITMENTS (FORMAT THIS LATER ON):
     --> NN module should provide a function for creating
     evaluators from nns. signature: as_evaluator(nn)
     
+    --> Agents should support being keys in a dictionary. Trivial
+    way to ensure this is to not extend __eq__ and __hash__ and
+    be content with == being is.
+    
 PROJECT BUG WARNINGS:
     
     --> numpy.array function tries to create multidimensional
@@ -25,6 +29,10 @@ PROJECT BUG WARNINGS:
     This is a problem in mcts_logic when picking a random
     move from the mcts distribution and also in 
     game_state_memorizer when picking a random outcome.
+    
+    --> Torch.nn.functional.cross_entropy is not what it
+    claims to be! Use the project's cross entropy function
+    instead.
     
 CHANGES:
     
@@ -63,22 +71,33 @@ import math
 
 import numpy as np
 import torch
+import matplotlib
+import matplotlib.pyplot as plt
 
 from mcts import *
 from game.tictactoe import TicTacToe as tct
 from game.reversi import Reversi
-from training_tools import train, TournamentGameSession
+from training_tools import unsupervised_training, TournamentGameSession
 from neural_network import TicTacToe_defaultNN as NN
 from training_tools import TrainingGameSession as TGS
 from training_tools import TournamentGameSession as ToGS
 from game_session import GameSessionTemplate
 from agent import agents
+from training_tools import compare
+from miscellaneous import cross_entropy
+
+EvaluatorAgent = agents.EvaluatorAgent
+RandomAgent = agents.RandomAgent
+UCTAgent = agents.UCTAgent
+MCTSAgent = agents.MCTSAgent
+
 
 uct_agent = agents.UCTAgent(10000, temperature = 1)
 random_agent = agents.RandomAgent()
 
-cross_ent = torch.nn.functional.cross_entropy
+# cross_ent = torch.nn.functional.cross_entropy DO NOT USE TORCH's
 mse_loss = torch.nn.functional.mse_loss
+
 
 net = NN('cpu')
 
@@ -88,6 +107,43 @@ with open('tct_all_UCT_data.pickle','rb') as file:
     
 with open('network_prepared_data_temp.pickle','rb') as file:
     trd, ted, vad = pickle.load(file)
+
+
+def discrete_answer(evaluator, state):
+    """
+    Discretizes the evalautor's assestment about the state.
+
+    Parameters
+    ----------
+    evaluator : evaluator
+        
+    state : game state
+        
+
+    """
+    move_dist, evalaution = evaluator(state)
+    
+    selected_move = max(move_dist, key = lambda move: move_dist[move])
+    predicted_winner = max(evaluation, key = lambda player: evaluation[player])
+    
+    return selected_move, predicted_winner
+
+# def calculate_loss(network, data, dist_loss_fn=None, eval_loss_fn=None):
+#     """
+#     data is a triplet (x, dist_target, eval_target)
+#     """
+#     if dist_loss_fn is None:
+#         dist_loss_fn = 
+#     if eval_loss_fn is None:
+#         eval_loss_fn = torch.nn.functional.mse_loss
+    
+#     x, dist_target, eval_target = data
+    
+#     dist_net, eval_net = network(x)
+    
+#     return (dist_loss_fn(dist_net, dist_target),
+#             eval_loss_fn(eval_net, eval_target))
+
 
 class ConsoleGameSession(GameSessionTemplate):
     
@@ -228,47 +284,152 @@ def load_UCT_data(neural_network = None):
 #                               return_type = 'move')
 
 
-def supervised_train(net, epochs, data):
+# class SupervisedTraining:
+    
+#     def __init__(self, net, epochs, data, 
+#                  lr=0.01,
+#                  momentum = 0.9,
+#                  weight_decay=10**-4,
+#                  batch_size=32):
+#         pass
+    
+#     def train(self, net, epochs, data,
+#                          lr=0.01, momentum = 0.9, weight_decay=10**-4,
+#                          batch_size=32):
+#         pass
+    
+#     def performance_output(self):
+#         pass
+
+def supervised_train(net, epochs, data,
+                     move_loss_function,
+                     eval_loss_function,
+                     lr=0.01, momentum = 0.9, weight_decay=10**-4,
+                     batch_size=32,
+                     testing_data = None,
+                     generate_plot_epoch = 10, previous_losses = None):
+    
+    if previous_losses is not None:
+        trd_loss_tracker, vad_loss_tracker = previous_losses
+    else:
+        trd_loss_tracker = []
+        vad_loss_tracker = []
     
     device = 'cpu'
     
     x_data, dist_data, eval_data = data
     
-    move_loss_function = torch.nn.functional.cross_entropy
-    eval_loss_function = torch.nn.functional.mse_loss
-    optimizer = torch.optim.SGD(net.parameters(), lr=0.01, momentum=0.9,
-                                weight_decay=10**-4)
+    optimizer = torch.optim.SGD(net.parameters(), lr, momentum,
+                                weight_decay)
     
-    batch_size = 32
-    
-    num_of_batches = math.ceil(len(x_data)/32) * epochs
+    num_of_batches_per_epoch = math.ceil(len(x_data)/batch_size)
     
     # start training
+    net.eval()
+    print('Training is starting...\n')
+    print('Training Data Performance:\n')
+    print(performance_on_data(net, trd,
+                              move_loss_function, eval_loss_function,
+                              record = trd_loss_tracker))
+    
+    if testing_data != None:
+        print('Test Data Performance:\n')
+        print(performance_on_data(net, testing_data,
+                                  move_loss_function, eval_loss_function,
+                                  record = vad_loss_tracker))
+    
     net.train()
     
-    for _ in range(num_of_batches):
-        example_indices = torch.tensor(random.sample(
-            range(x_data.shape[0]), batch_size))
-        batch = [torch.index_select(tensor, 0, example_indices)
-                 for tensor in (x_data, dist_data, eval_data)]
+    for epoch in range(1, epochs+1):
+        for _ in range(num_of_batches_per_epoch):
+            example_indices = torch.tensor(random.sample(
+                range(x_data.shape[0]), batch_size))
+            batch = [torch.index_select(tensor, 0, example_indices)
+                     for tensor in (x_data, dist_data, eval_data)]
+            
+            x, dist_target, eval_target = batch
+            
+            net_dist, net_eval = net(x)
+            
+            dist_loss = move_loss_function(net_dist, dist_target)
+            eval_loss = eval_loss_function(net_eval, eval_target)
+            
+            loss = dist_loss + eval_loss
+            
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
         
-        x, dist_target, eval_target = batch
+        net.eval()
+        print('Epoch {}/{} complete.\n'.format(epoch,epochs))
+        print('Training Data Performance:\n')
+        print(performance_on_data(net, data,
+                                  move_loss_function, eval_loss_function,
+                                  record = trd_loss_tracker))
+        if testing_data != None:
+            print('Test Data Performance:\n')
+            print(performance_on_data(net, testing_data,
+                                      move_loss_function, eval_loss_function,
+                                      record = vad_loss_tracker))
+        net.train()
         
-        net_dist, net_eval = net(x)
-        
-        dist_loss = move_loss_function(net_dist, dist_target)
-        eval_loss = eval_loss_function(net_eval, eval_target)
-        
-        loss = dist_loss + eval_loss
-        
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        
-        print("Mb complete. TLoss is: {}, MLoss is: {} ELoss is: {}".format(loss.item(), dist_loss.item(), eval_loss.item()))
-    
+        if epoch % generate_plot_epoch == 0:
+            tr_dist, tr_eval = zip(*trd_loss_tracker)
+            va_dist, va_eval = zip(*vad_loss_tracker)
+            
+            tr_dist_min = move_loss_function(
+                data[1],data[1])
+            # tr_eval_min = eval_loss_function(, )
+            va_dist_min = move_loss_function(
+                testing_data[1],testing_data[1])
+            # va_eval_min = eval_loss_function(, )
+            
+            fig, (ax1, ax2) = plt.subplots(2,1)
+            ax1.plot(list(range(len(trd_loss_tracker))), [tr_dist_min]*len(trd_loss_tracker), color = 'r')
+            ax1.plot(list(range(len(trd_loss_tracker))), [va_dist_min]*len(trd_loss_tracker), color = 'g')
+            ax1.plot(list(range(len(trd_loss_tracker))), tr_dist, color='r')
+            ax2.plot(list(range(len(trd_loss_tracker))), tr_eval, color='m')
+            ax1.plot(list(range(len(vad_loss_tracker))), va_dist, color='g')
+            ax2.plot(list(range(len(vad_loss_tracker))), va_eval, color='b')
+            # ax.set_ylim(top = )
+            plt.show()
     net.eval()
 
+def performance_on_data(net, data,
+                        move_loss_function,
+                        eval_loss_function,
+                        record = None):
+    x_data, dist_data, eval_data = data
+    
+    net_dist, net_eval = net(x_data)
+    
+    output = ''
+    output += 'Distribution loss is {}\n'.format(
+        move_loss_function(net_dist, dist_data))
+    output += 'Minimum Distribution loss is {}\n\n'.format(
+        move_loss_function(dist_data, dist_data))
+    
+    output += 'Evaluation loss is {}\n'.format(
+        eval_loss_function(net_eval, eval_data))
+    output += 'Minimum Evaluation loss is {}\n'.format(
+        eval_loss_function(eval_data, eval_data))
+    
+    if record is not None:
+        record.append((move_loss_function(net_dist, dist_data).item(),
+                       eval_loss_function(net_eval, eval_data).item()))
+    
+    return output
+    
+
+def get_evaluator(network, translator):
+    def evaluator(state, legal_moves, player):
+        x = translator.states_to_tensor([state])
+        move_dist, evaluation = network(x)
+        return (
+            translator.tensor_to_dists([state], [legal_moves], move_dist)[0], 
+            translator.tensor_to_evals(evaluation)[0]
+            )
+    return evaluator
 
 # a = tct.initial_state()
 # a = a.after((1,1,100),None)

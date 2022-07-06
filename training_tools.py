@@ -16,7 +16,7 @@ import neural_network
 
 # Let us not include Bayesian optimization for now in this method.
 # Let us create something that works first.
-def train(game,
+def unsupervised_training(game,
           neural_network,
           mcts_steps_per_move,
           move_selector,
@@ -29,14 +29,10 @@ def train(game,
           temperature,
           exploration_constant,
           device,
-          move_loss_function = None,
-          eval_loss_function = None
+          move_loss_function,
+          eval_loss_function
           ):
     
-    if move_loss_function is None:
-        move_loss_function = torch.nn.CrossEntropyLoss()
-    if eval_loss_function is None:
-        eval_loss_function = torch.nn.MSELoss()
     
     #Initializing the training data pool
         
@@ -125,6 +121,22 @@ def update_pool(pool, game_count, game, neural_network, mcts_steps_per_move,
         pool.append(game_data)
 
 
+def compare(game, agents, times):
+    if len(agents) != len(game.players):
+        raise ValueError('Number of agents do not match the game.')
+        
+    results = {agent: 0 for agent in agents}
+    
+    for _ in range(times):
+        state = game.initial_state()
+        role_dict = dict(zip(random.sample(game.players, len(game.players)),
+                             agents))
+        game_result = TournamentGameSession(game, role_dict).run()
+        for role, agent in role_dict.items():
+            results[agent] = results[agent] + game_result[role]
+            
+    return results
+
 class TournamentGameSession(GameSessionTemplate):
     
     def __init__(self, game, agent_dict):
@@ -159,8 +171,9 @@ class TrainingGameSession(GameSessionTemplate):
                  move_selector,
                  temperature):
         """
-        Creates a new instance of a game session which records training
-        data to @output.
+        Creates a new instance of a game session which generates a game
+        using mcts search with given parameters, and outputs its result
+        to @output.
         
         Parameters
         ----------
