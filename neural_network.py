@@ -10,38 +10,34 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 
-import game.tictactoe.translator_1 as tr
-
 class TicTacToe_defaultNN(nn.Module):
     
-    def __init__(self, current_device):
+    def __init__(self):
         super(TicTacToe_defaultNN, self).__init__()
-        self._current_device = current_device
         
         self.body = nn.Sequential(
-            nn.Linear(27, 50),
+            nn.Linear(27, 100),
             nn.ReLU(),
-            nn.Linear(50, 50),
-            nn.ReLU(),
-            nn.Linear(50, 50),
-            nn.ReLU(),
-            nn.Linear(50, 50),
-            nn.ReLU(),
+            ResidualBlock(100),
+            ResidualBlock(100),
+            ResidualBlock(100),
+            ResidualBlock(100),
+            ResidualBlock(100),
+            ResidualBlock(100),
+            ResidualBlock(100),
+            ResidualBlock(100),
+            ResidualBlock(100)
             )
     
         self.dist_head = nn.Sequential(
-            nn.Linear(50, 50),
-            nn.ReLU(),
-            nn.Linear(50, 30),
+            nn.Linear(100, 30),
             nn.ReLU(),
             nn.Linear(30, 9),
             nn.Softmax(dim=1)
             )
         
         self.eval_head = nn.Sequential(
-            nn.Linear(50, 50),
-            nn.ReLU(),
-            nn.Linear(50, 30),
+            nn.Linear(100, 30),
             nn.ReLU(),
             nn.Linear(30, 1),
             nn.Tanh()
@@ -50,7 +46,29 @@ class TicTacToe_defaultNN(nn.Module):
     def forward(self, x):
         x = self.body(x)
         return self.dist_head(x), self.eval_head(x)
+
+class ResidualBlock(nn.Module):
     
+    def __init__(self, neurons):
+        super().__init__()
+        
+        self.layer_1 = nn.Linear(neurons, neurons)
+        self.relu_1 = nn.ReLU()
+        self.layer_2 = nn.Linear(neurons, neurons)
+        self.relu_2 = nn.ReLU()
+        
+    
+    def forward(self, x):
+        residual = x
+        x = self.layer_1(x)
+        x = self.relu_1(x)
+        x = self.layer_2(x)
+        
+        x = x + residual
+        x = self.relu_2(x)
+        return x
+        
+        
 
 # class TicTacToe_residualNN(nn.Module):
     
@@ -76,22 +94,6 @@ class TicTacToe_defaultNN(nn.Module):
 #         x_moves = self.layer3_1(x_2)
 #         x_eval = self.layer3_2(x_2)
 #         return x_moves, x_eval
-
-#     def calculate_loss(self, data, dist_loss_fn=None, eval_loss_fn=None):
-#         """
-#         data is a triplet (x, dist_target, eval_target)
-#         """
-#         if dist_loss_fn is None:
-#             dist_loss_fn = torch.nn.functional.cross_entropy
-#         if eval_loss_fn is None:
-#             eval_loss_fn = torch.nn.functional.mse_loss
-        
-#         x, dist_target, eval_target = data
-        
-#         dist_net, eval_net = self(x)
-        
-#         return (dist_loss_fn(dist_net, dist_target),
-#                 eval_loss_fn(eval_net, eval_target))
 
 #     # Gets a list of game states and returns a batch of valid inputs to network, sent to the same device 
 #     def states_to_tensor(self, states):

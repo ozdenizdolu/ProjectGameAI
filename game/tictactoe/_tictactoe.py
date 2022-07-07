@@ -163,6 +163,11 @@ class TicTacToeState:
                          for indice in np.ndindex(self._board.shape)])
                 + 'turn: {}'.format(TicTacToe._name_dict[self._turn]))
     
+    def __repr__(self):
+        #Everything to know about the state is given in str
+        return str(self)
+    
+    
     def __eq__(self, other):
         if not isinstance(other, TicTacToeState):
             return False

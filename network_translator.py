@@ -1,7 +1,15 @@
 """
+Development Note
+----------------
+
 Neural network + translator = evaluator
 
 """
+
+import torch
+
+
+import game.tictactoe.translator_1 as tr
 
 class StandardTicTacToeTranslator:
     

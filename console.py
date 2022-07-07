@@ -85,6 +85,9 @@ from game_session import GameSessionTemplate
 from agent import agents
 from training_tools import compare
 from miscellaneous import cross_entropy
+from network_translator import StandardTicTacToeTranslator
+
+tr = StandardTicTacToeTranslator()
 
 EvaluatorAgent = agents.EvaluatorAgent
 RandomAgent = agents.RandomAgent
@@ -99,17 +102,48 @@ random_agent = agents.RandomAgent()
 mse_loss = torch.nn.functional.mse_loss
 
 
-net = NN('cpu')
+
+device = 'cpu'
+
+net = NN()
+
+prev_loss = ([],[])
 
 with open('tct_all_UCT_data.pickle','rb') as file:
     raw_data = pickle.load(file)
     random.shuffle(raw_data)
     
-with open('network_prepared_data_temp.pickle','rb') as file:
-    trd, ted, vad = pickle.load(file)
+    training_data = raw_data[0:15000]
+    test_data = raw_data[15000:18000]
+    validation_data = raw_data[18000:]
+    
+    trd = tr.translate_data(training_data, device)
+    ted = tr.translate_data(test_data, device)
+    vad = tr.translate_data(validation_data, device)
+    
+# with open('network_prepared_data_temp.pickle','rb') as file:
+#     trd, ted, vad = pickle.load(file)
 
+def discretize_tct_answer(move_dist, evaluation):
+    
+    selected_move = max(move_dist, key = lambda move: move_dist[move])
+    
+    #THIS DOESNT WORK. 0 evaluation should say the game is draw
+    #The game outcome is not always a win!!
+    # predicted_winner = max(evaluation, key = lambda player: evaluation[player])
+    
+    x_bets = evaluation[tct.X]
+    
+    if x_bets > 0.5:
+        pred_result = 1
+    elif x_bets < -0.5:
+        pred_result = -1
+    else:
+        pred_result = 0
+    
+    return selected_move, pred_result
 
-def discrete_answer(evaluator, state):
+def discrete_tct_answer(evaluator, state):
     """
     Discretizes the evalautor's assestment about the state.
 
@@ -121,28 +155,20 @@ def discrete_answer(evaluator, state):
         
 
     """
-    move_dist, evalaution = evaluator(state)
+    return discretize_tct_answer(*evaluator(state))
     
-    selected_move = max(move_dist, key = lambda move: move_dist[move])
-    predicted_winner = max(evaluation, key = lambda player: evaluation[player])
     
-    return selected_move, predicted_winner
-
-# def calculate_loss(network, data, dist_loss_fn=None, eval_loss_fn=None):
-#     """
-#     data is a triplet (x, dist_target, eval_target)
-#     """
-#     if dist_loss_fn is None:
-#         dist_loss_fn = 
-#     if eval_loss_fn is None:
-#         eval_loss_fn = torch.nn.functional.mse_loss
+def calculate_loss(network, data, dist_loss_fn, eval_loss_fn):
+    """
+    data is a triplet (x, dist_target, eval_target)
+    """
     
-#     x, dist_target, eval_target = data
+    x, dist_target, eval_target = data
     
-#     dist_net, eval_net = network(x)
+    dist_net, eval_net = network(x)
     
-#     return (dist_loss_fn(dist_net, dist_target),
-#             eval_loss_fn(eval_net, eval_target))
+    return (dist_loss_fn(dist_net, dist_target),
+            eval_loss_fn(eval_net, eval_target))
 
 
 class ConsoleGameSession(GameSessionTemplate):
@@ -373,7 +399,7 @@ def supervised_train(net, epochs, data,
                                       record = vad_loss_tracker))
         net.train()
         
-        if epoch % generate_plot_epoch == 0:
+        if epoch % generate_plot_epoch == 0 or epoch == 1:
             tr_dist, tr_eval = zip(*trd_loss_tracker)
             va_dist, va_eval = zip(*vad_loss_tracker)
             
@@ -421,9 +447,13 @@ def performance_on_data(net, data,
     return output
     
 
-def get_evaluator(network, translator):
-    def evaluator(state, legal_moves, player):
-        x = translator.states_to_tensor([state])
+def get_evaluator(network, translator, device = 'cpu'):
+    def evaluator(state, legal_moves = None, player = None):
+        if legal_moves == None:
+            legal_moves = state.moves()
+        if player == None:
+            player = state.turn()
+        x = translator.states_to_tensor([state], device = device)
         move_dist, evaluation = network(x)
         return (
             translator.tensor_to_dists([state], [legal_moves], move_dist)[0], 
