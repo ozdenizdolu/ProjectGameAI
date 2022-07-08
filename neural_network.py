@@ -16,30 +16,30 @@ class TicTacToe_defaultNN(nn.Module):
         super(TicTacToe_defaultNN, self).__init__()
         
         self.body = nn.Sequential(
-            nn.Linear(27, 100),
+            nn.Linear(27, 200),
             nn.ReLU(),
-            ResidualBlock(100),
-            ResidualBlock(100),
-            ResidualBlock(100),
-            ResidualBlock(100),
-            ResidualBlock(100),
-            ResidualBlock(100),
-            ResidualBlock(100),
-            ResidualBlock(100),
-            ResidualBlock(100)
+            ResidualBlock(200),
+            ResidualBlock(200),
+            ResidualBlock(200),
+            ResidualBlock(200),
+            ResidualBlock(200),
+            ResidualBlock(200),
+            ResidualBlock(200),
+            ResidualBlock(200),
+            ResidualBlock(200),
+            ResidualBlock(200),
+            ResidualBlock(200),
+            ResidualBlock(200),
+            ResidualBlock(200)
             )
     
         self.dist_head = nn.Sequential(
-            nn.Linear(100, 30),
-            nn.ReLU(),
-            nn.Linear(30, 9),
+            nn.Linear(200, 9),
             nn.Softmax(dim=1)
             )
         
         self.eval_head = nn.Sequential(
-            nn.Linear(100, 30),
-            nn.ReLU(),
-            nn.Linear(30, 1),
+            nn.Linear(200, 1),
             nn.Tanh()
             )
         
@@ -47,99 +47,73 @@ class TicTacToe_defaultNN(nn.Module):
         x = self.body(x)
         return self.dist_head(x), self.eval_head(x)
 
+
+class TowardsAttention(nn.Module):
+    
+    def __init__(self, dimensionality):
+        super(TowardsAttention, self).__init__()
+        self.d = dimensionality
+        # 9 is the number of tokens
+        
+        self.input_embedder = nn.Sequential(
+            #This is not a ffnn. 
+            nn.Linear(27, self.d, bias = False), 
+            # It embeds tokens to the space of computation
+            nn.Flatten()
+            )
+        
+        self.body = nn.Sequential(
+            
+            ResidualBlock(self.d*9),
+            ResidualBlock(self.d*9),
+            ResidualBlock(self.d*9),
+            ResidualBlock(self.d*9),
+            ResidualBlock(self.d*9),
+            ResidualBlock(self.d*9),
+            ResidualBlock(self.d*9)
+            )
+    
+        self.dist_head = nn.Sequential(
+            nn.Linear(self.d*9, 9),
+            nn.Softmax(dim=1)
+            )
+        
+        self.eval_head = nn.Sequential(
+            nn.Linear(self.d*9, 1),
+            nn.Tanh()
+            # The output is given wrt the current player
+            )
+        
+    
+    def forward(self, x):
+        x = self.input_embedder(x)
+        x = self.body(x)
+        return self.dist_head(x), self.eval_head(x)
+
+
 class ResidualBlock(nn.Module):
+    # Similar to AlphaGoZero residual blocks
     
     def __init__(self, neurons):
         super().__init__()
         
         self.layer_1 = nn.Linear(neurons, neurons)
+        self.batch_norm_1 = nn.BatchNorm1d(neurons)
         self.relu_1 = nn.ReLU()
         self.layer_2 = nn.Linear(neurons, neurons)
+        self.batch_norm_2 = nn.BatchNorm1d(neurons)
         self.relu_2 = nn.ReLU()
         
     
     def forward(self, x):
         residual = x
         x = self.layer_1(x)
+        s = self.batch_norm_1(x)
         x = self.relu_1(x)
         x = self.layer_2(x)
+        x = self.batch_norm_2(x)
         
         x = x + residual
         x = self.relu_2(x)
         return x
         
-        
-
-# class TicTacToe_residualNN(nn.Module):
-    
-#     def __init__(self, current_device):
-#         super(TicTacToe_residualNN, self).__init__()
-#         self._current_device = current_device
-#         self.relu = nn.ReLU()
-#         self.layer1 = nn.Linear(27, 27)
-#         self.layer2 = nn.Linear(27, 27)
-#         self.layer3_1 = nn.Sequential(
-#             nn.Linear(27, 9),
-#             nn.Softmax(dim = 1)
-#         )
-#         self.layer3_2 = nn.Sequential(
-#             nn.Linear(27, 1),
-#             nn.Tanh(),
-#         )
-#     def forward(self, x):
-#         x_1 = self.layer1(x)
-#         x_1 = self.relu(x_1)
-#         x_2 = self.layer2(x_1) + x
-#         x_2 = self.relu(x_2)
-#         x_moves = self.layer3_1(x_2)
-#         x_eval = self.layer3_2(x_2)
-#         return x_moves, x_eval
-
-#     # Gets a list of game states and returns a batch of valid inputs to network, sent to the same device 
-#     def states_to_tensor(self, states):
-#         return torch.cat([tr.state_to_tensor(state).unsqueeze(0) for state in states],
-#                          dim=0).to(self._current_device)
-    
-#     # Converts the move distribution output of the neural network
-#     # to be compatible with the rest of the system
-#     def tensor_to_dists(self, states, legal_moves_list, moves_tensor):
-#         if moves_tensor.ndim != 2:
-#             raise ValueError("moves_tensor should have 2 dimensions")
-#         if len(states) != len(legal_moves_list):
-#             raise ValueError("len(states) should be equal to len(legal_moves_list")
-#         if len(states) != moves_tensor.shape[0]:
-#             raise ValueError("len(states) should be equal to size of 0th dimension of moves_tensor")
-#         return [tr.tensor_to_dist(states[i], legal_moves_list[i], moves_tensor[i])
-#                 for i in range(len(states))]
-
-#     # Converts the evaluation output of the neural network 
-#     # to be compatible with the rest of the system
-#     def tensor_to_evals(self, evals_tensor):
-#         if evals_tensor.ndim != 2:
-#             raise ValueError("evals_tensor should have 2 dimensions")
-#         return [tr.tensor_to_eval(evals_tensor[i]) for i in range(evals_tensor.shape[0])]
-    
-#     # Converts the list of move_distributions to the same type as 
-#     # the neural network output move_distributions
-#     def dists_to_tensor(self, move_distributions, device = None):
-#         if device == None:
-#             device = self._current_device
-#         return torch.cat([tr.dist_to_tensor(move_dist).unsqueeze(0) for move_dist in move_distributions],
-#                         dim=0).to(device)
-    
-#     # Converts the list of evaluations to the same type as 
-#     # the neural network output evaluations
-#     def evals_to_tensor(self, evaluations, device = None):
-#         if device == None:
-#             device = self._current_device
-#         return torch.cat([tr.eval_to_tensor(evaluation).unsqueeze(0) for evaluation in evaluations],
-#                         dim=0).to(device)
-    
-#     # A helper function that is compatible with the evaluator protocol of the system
-#     def as_evaluator(self):
-#         def evaluator(state, legal_moves, player):
-#             x = tr.state_to_tensor(state).unsqueeze(dim=0)
-#             move_dist, evaluation = self.forward(x)
-#             return (tr.tensor_to_dist(state, legal_moves, move_dist.squeeze(0)), 
-#                     tr.tensor_to_eval(evaluation.squeeze(0)))
-#         return evaluator

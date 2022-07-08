@@ -3,12 +3,43 @@ Provides functions for translating game related information to a form
 which neural networks can understand.
 """
 
+import itertools
+
 import torch
 import numpy as np
 
 from ._tictactoe import TicTacToe
 
-def state_to_tensor(state):
+def state_as_ordered_tokens(state, device):
+    # This one translates with respect to the current player and therefore
+    # no information about the current player is needed.
+    
+    tokens = []
+    
+    for i, piece in zip(itertools.count(0),
+                        np.nditer(state._board, order = 'C')):
+        if piece == state.turn():
+            piece = np.array([1.,0.,0.]).reshape(1,3)
+        elif piece == TicTacToe.empty:
+            piece = np.array([0.,0.,1.]).reshape(1,3)
+        elif piece == TicTacToe._other_player(state.turn()):
+            piece = np.array([0.,1.,0.]).reshape(1,3)
+        else:
+            assert False
+        
+        position = np.zeros((9,1), dtype = np.float32)
+        position[i, 0] = 1.
+        
+        token = (position * piece).flatten(order = 'C').reshape((1,27))
+        
+        tokens.append(token)
+    
+    return torch.tensor(np.concatenate(tokens, axis = 0),
+                        dtype=torch.get_default_dtype(),
+                        device=device)
+    
+
+def state_as_flattened_feature_planes(state):
     # # Make 2 feature planes for stones
     XS = torch.tensor(state._board == TicTacToe.X,
                       dtype=torch.float).reshape((1,3,3))
@@ -47,10 +78,13 @@ def tensor_to_dist(state, legal_moves, move_tensor):
     
     return {move: value/normalization_constant for move, value in temp.items()}
     
-def eval_to_tensor(evaluation):
+def eval_tensor_wrt_X(evaluation):
     #mapping to tensor
     return torch.tensor([evaluation[TicTacToe.X]], dtype=torch.float)
 
-def tensor_to_eval(eval_tensor):
+def get_eval_wrt_X(eval_tensor):
     return {TicTacToe.X: eval_tensor.item(), TicTacToe.O: -eval_tensor.item()}
 
+def get_eval_wrt_current_player(state, eval_tensor):
+    return {state.turn(): eval_tensor.item(),
+            TicTacToe._other_player(state.turn()): -eval_tensor.item()}

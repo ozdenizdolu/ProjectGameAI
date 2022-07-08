@@ -6,7 +6,10 @@ import itertools
 import random
 import logging
 
+import numpy as np
+
 from .. import TicTacToe
+from .. import translator_1
 
 
 class TicTacToeTests(unittest.TestCase):
@@ -44,4 +47,20 @@ class TicTacToeTests(unittest.TestCase):
         self.assertEqual(len(_dict), 2)
             
         
+class TranslatorTests(unittest.TestCase):
+    
+    def test_state_as_ordered_tokens(self):
         
+        state = TicTacToe.from_string('XX_OO_XOXturn:X')
+        
+        tokens = translator_1.state_as_ordered_tokens(state)
+        
+        self.assertTrue(tokens.shape[0] == 9 and tokens.shape[1] == 27)
+        self.assertTrue(len(tokens.shape) == 2)
+        
+        self.assertTrue(np.all(tokens[0,:] == np.array([1.]+[0.]*26)))
+        
+        self.assertTrue(np.all(tokens[4,:] == np.array([0.]*13+[1.]+[0.]*13)))
+
+
+

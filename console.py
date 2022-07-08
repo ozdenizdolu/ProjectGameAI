@@ -71,6 +71,7 @@ import math
 
 import numpy as np
 import torch
+from torch.nn.functional import mse_loss # Do not use cross entropy of torch's
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -78,36 +79,34 @@ from mcts import *
 from game.tictactoe import TicTacToe as tct
 from game.reversi import Reversi
 from training_tools import unsupervised_training, TournamentGameSession
-from neural_network import TicTacToe_defaultNN as NN
+from neural_network import TicTacToe_defaultNN, TowardsAttention
 from training_tools import TrainingGameSession as TGS
 from training_tools import TournamentGameSession as ToGS
 from game_session import GameSessionTemplate
 from agent import agents
 from training_tools import compare
 from miscellaneous import cross_entropy
-from network_translator import StandardTicTacToeTranslator
-
-tr = StandardTicTacToeTranslator()
+from network_translator import (StandardTicTacToeTranslator,
+                                TokenLikeTicTacToeTranslator)
 
 EvaluatorAgent = agents.EvaluatorAgent
 RandomAgent = agents.RandomAgent
 UCTAgent = agents.UCTAgent
 MCTSAgent = agents.MCTSAgent
 
-
 uct_agent = agents.UCTAgent(10000, temperature = 1)
+good_uct_agent = agents.UCTAgent(10000, temperature = 0.1)
 random_agent = agents.RandomAgent()
-
-# cross_ent = torch.nn.functional.cross_entropy DO NOT USE TORCH's
-mse_loss = torch.nn.functional.mse_loss
-
 
 
 device = 'cpu'
 
-net = NN()
+net = TowardsAttention(10)
+net.eval()
+tr = TokenLikeTicTacToeTranslator()
 
-prev_loss = ([],[])
+if 'prev_loss' not in vars():
+    prev_loss = ([],[])
 
 with open('tct_all_UCT_data.pickle','rb') as file:
     raw_data = pickle.load(file)
@@ -296,44 +295,13 @@ def load_UCT_data(neural_network = None):
     return tuple(new_data)
 
 
-
-# def as_direct_player(evaluator):
-#     return lambda state: random.choices(*zip(*evaluator(
-#         state, state.moves(), state.turn())[0].items()))[0]
-
-
-# def as_mcts_player(evaluator, mcts_steps, move_selector, exploration_constant,
-#               temperature):
-    
-#     return lambda state: mcts(state, evaluator, mcts_steps, move_selector,
-#                               exploration_constant, temperature,
-#                               return_type = 'move')
-
-
-# class SupervisedTraining:
-    
-#     def __init__(self, net, epochs, data, 
-#                  lr=0.01,
-#                  momentum = 0.9,
-#                  weight_decay=10**-4,
-#                  batch_size=32):
-#         pass
-    
-#     def train(self, net, epochs, data,
-#                          lr=0.01, momentum = 0.9, weight_decay=10**-4,
-#                          batch_size=32):
-#         pass
-    
-#     def performance_output(self):
-#         pass
-
 def supervised_train(net, epochs, data,
                      move_loss_function,
                      eval_loss_function,
                      lr=0.01, momentum = 0.9, weight_decay=10**-4,
                      batch_size=32,
                      testing_data = None,
-                     generate_plot_epoch = 10, previous_losses = None):
+                     generate_plot_epoch = 5, previous_losses = None):
     
     if previous_losses is not None:
         trd_loss_tracker, vad_loss_tracker = previous_losses
@@ -457,7 +425,7 @@ def get_evaluator(network, translator, device = 'cpu'):
         move_dist, evaluation = network(x)
         return (
             translator.tensor_to_dists([state], [legal_moves], move_dist)[0], 
-            translator.tensor_to_evals(evaluation)[0]
+            translator.tensor_to_evals([state], evaluation)[0]
             )
     return evaluator
 

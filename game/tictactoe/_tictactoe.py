@@ -62,7 +62,7 @@ class TicTacToe:
         raw_board = list(re.findall(r'[XO_]', string))[0:9]
         raw_board = [TicTacToe._inv_name_dict[s] for s in raw_board]
         board = np.array(raw_board).reshape(3,3)
-        turn_str = re.search(r'turn: (.)', string).group(1)
+        turn_str = re.search(r'turn:[ ]*(.)', string).group(1)
         turn = TicTacToe._inv_name_dict[turn_str]
         return TicTacToeState(board, turn)
 
