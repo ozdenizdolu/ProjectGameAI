@@ -79,7 +79,9 @@ from mcts import *
 from game.tictactoe import TicTacToe as tct
 from game.reversi import Reversi
 from training_tools import unsupervised_training, TournamentGameSession
-from neural_network import TicTacToe_defaultNN, TowardsAttention
+from neural_network import (TicTacToe_defaultNN,
+                            TowardsAttention,
+                            NetworkWithAttention)
 from training_tools import TrainingGameSession as TGS
 from training_tools import TournamentGameSession as ToGS
 from game_session import GameSessionTemplate
@@ -101,7 +103,7 @@ random_agent = agents.RandomAgent()
 
 device = 'cpu'
 
-net = TowardsAttention(10)
+net = NetworkWithAttention(device)
 net.eval()
 tr = TokenLikeTicTacToeTranslator()
 

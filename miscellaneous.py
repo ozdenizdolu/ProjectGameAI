@@ -72,8 +72,13 @@ def cross_entropy(output, target):
     The cross entropy in the form of tensor.
 
     """
-    epsilon = torch.ones_like(output)*(10**-20)
+    # epsilon = torch.ones_like(output)*(10**-20)
     
-    return (-1.) * torch.mean(
-        torch.sum(torch.log(output + epsilon) * target, dim = 1),
-        dim = 0)
+    if not (len(output.shape) == len(target.shape) == 2):
+        raise ValueError('Invalid input to cross_entropy.')
+    if not output.shape == target.shape:
+        raise ValueError('Dimensions do not match.')
+    
+    return torch.mul(-1., torch.mean(
+        torch.sum(torch.mul(torch.log(torch.add(output, 10**-20)), target), dim = 1),
+        dim = 0))
