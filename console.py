@@ -81,7 +81,9 @@ from game.reversi import Reversi
 from training_tools import unsupervised_training, TournamentGameSession
 from neural_network import (TicTacToe_defaultNN,
                             TowardsAttention,
-                            NetworkWithAttention)
+                            NetworkWithAttention,
+                            MultiHeadSelfAttentionBlock,
+                            NetworkWithMultiHeadAttention)
 from training_tools import TrainingGameSession as TGS
 from training_tools import TournamentGameSession as ToGS
 from game_session import GameSessionTemplate
@@ -103,7 +105,7 @@ random_agent = agents.RandomAgent()
 
 device = 'cpu'
 
-net = NetworkWithAttention(device)
+net = NetworkWithMultiHeadAttention(32, 8, device)
 net.eval()
 tr = TokenLikeTicTacToeTranslator()
 
@@ -303,20 +305,25 @@ def supervised_train(net, epochs, data,
                      lr=0.01, momentum = 0.9, weight_decay=10**-4,
                      batch_size=32,
                      testing_data = None,
-                     generate_plot_epoch = 5, previous_losses = None):
+                     generate_plot_epoch = 5,
+                     previous_losses = None):
     
     if previous_losses is not None:
         trd_loss_tracker, vad_loss_tracker = previous_losses
     else:
         trd_loss_tracker = []
         vad_loss_tracker = []
+        
+    if weight_decay != 0.:
+        raise NotImplementedError('''Weight decay currently applies to all
+                                  parameters, not just weights. Update the
+                                  code to use this functionality securely.''')
     
-    device = 'cpu'
     
     x_data, dist_data, eval_data = data
     
-    optimizer = torch.optim.SGD(net.parameters(), lr, momentum,
-                                weight_decay)
+    optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=momentum,
+                                weight_decay=weight_decay)
     
     num_of_batches_per_epoch = math.ceil(len(x_data)/batch_size)
     
@@ -391,6 +398,7 @@ def supervised_train(net, epochs, data,
             plt.show()
     net.eval()
 
+@torch.no_grad()
 def performance_on_data(net, data,
                         move_loss_function,
                         eval_loss_function,
