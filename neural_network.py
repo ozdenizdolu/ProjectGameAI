@@ -116,7 +116,38 @@ class NetworkWithMultiHeadAttention(nn.Module):
                     nn.Linear(dim*intra_expansion, dim, device=device))
                 ),
             
+            nn.LayerNorm((dim,), device=device),
+            
+            WithResidual(
+                MultiHeadSelfAttentionBlock(dim, heads, device=device)
+                ),
+            
+            nn.LayerNorm((dim,), device=device),
+            
+            WithResidual(
+                nn.Sequential(
+                    nn.Linear(dim, dim*intra_expansion, device=device),
+                    nn.ReLU(),
+                    nn.Linear(dim*intra_expansion, dim, device=device))
+                ),
+            
+            nn.LayerNorm((dim,), device=device),
+            
+            WithResidual(
+                MultiHeadSelfAttentionBlock(dim, heads, device=device)
+                ),
+            
+            nn.LayerNorm((dim,), device=device),
+            
+            WithResidual(
+                nn.Sequential(
+                    nn.Linear(dim, dim*intra_expansion, device=device),
+                    nn.ReLU(),
+                    nn.Linear(dim*intra_expansion, dim, device=device))
+                ),
+            
             nn.LayerNorm((dim,), device=device)
+            
             )
         
         self.dist_head = nn.Sequential(

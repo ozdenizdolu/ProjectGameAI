@@ -302,7 +302,7 @@ def load_UCT_data(neural_network = None):
 def supervised_train(net, epochs, data,
                      move_loss_function,
                      eval_loss_function,
-                     lr=0.01, momentum = 0.9, weight_decay=10**-4,
+                     lr=0.01, momentum = 0.9, weight_decay=0.,
                      batch_size=32,
                      testing_data = None,
                      generate_plot_epoch = 5,
