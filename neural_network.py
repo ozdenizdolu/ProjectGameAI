@@ -233,11 +233,9 @@ class MultiHeadSelfAttentionBlock(nn.Module):
         x = x.unsqueeze(1) # now (N, 1, T, dim)
         x = x.unsqueeze(-1) # now (N, 1, T, dim, 1)
         
-        x = x.expand((N, self.h, T, self.dim, 1))
-        
-        query_matrix = self._broadcast_head(self.query_heads, N, T)
-        key_matrix = self._broadcast_head(self.key_heads, N, T)
-        value_matrix = self._broadcast_head(self.value_heads, N, T)
+        query_matrix = self._broadcast_head(self.query_heads)
+        key_matrix = self._broadcast_head(self.key_heads)
+        value_matrix = self._broadcast_head(self.value_heads)
         
         queries = torch.matmul(query_matrix, x).squeeze(dim=-1)
         keys = torch.matmul(key_matrix, x).squeeze(dim=-1)
@@ -265,9 +263,8 @@ class MultiHeadSelfAttentionBlock(nn.Module):
         else:
             return concatenated
         
-    def _broadcast_head(self, head, N , T):
-        return (head.unsqueeze(1).unsqueeze(0)
-                .expand((N, self.h, T, self.hidden_dim, self.dim)))
+    def _broadcast_head(self, head):
+        return head.unsqueeze(1).unsqueeze(0)
         
 
 class SelfAttentionBlock(nn.Module):
