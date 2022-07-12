@@ -232,20 +232,16 @@ class MultiHeadSelfAttentionBlock(nn.Module):
         
         x = x.unsqueeze(1) # now (N, 1, T, dim)
         x = x.unsqueeze(-1) # now (N, 1, T, dim, 1)
-        x = x.unsqueeze(3) # now (N, 1, T, 1, dim, 1)
+
+        query_matrix = self._broadcast_head(self.query_heads)
+        key_matrix = self._broadcast_head(self.key_heads)
+        value_matrix = self._broadcast_head(self.value_heads)
         
-        x = x.expand((N, self.h, T, 1, self.dim, 1))
-        
-        query_matrix = self._broadcast_head(self.query_heads, N, T)
-        key_matrix = self._broadcast_head(self.key_heads, N, T)
-        value_matrix = self._broadcast_head(self.value_heads, N, T)
-        
-        # Following tom's advice at 
-        # https://discuss.pytorch.org/t/matmul-broadcasting-makes-copies/19494/2
-        queries = torch.sum(torch.mul(query_matrix, x), -2).squeeze(-1)
-        keys = torch.sum(torch.mul(key_matrix, x), -2).squeeze(-1)
-        values = torch.sum(torch.mul(value_matrix, x), -2).squeeze(-1)
-        
+        queries = torch.einsum('abcij,abcjk->abci', query_matrix, x)
+        keys = torch.einsum('abcij,abcjk->abci', key_matrix, x)
+        values = torch.einsum('abcij,abcjk->abci', value_matrix, x)
+
+
         assert (tuple(queries.shape)
                 == tuple(keys.shape)
                 == tuple(values.shape)
@@ -268,9 +264,10 @@ class MultiHeadSelfAttentionBlock(nn.Module):
         else:
             return concatenated
         
-    def _broadcast_head(self, head, N , T):
-        return (head.unsqueeze(1).unsqueeze(0).unsqueeze(-1)
-                .expand((N, self.h, T, self.hidden_dim, self.dim, 1)))
+
+    def _broadcast_head(self, head):
+        return head.unsqueeze(1).unsqueeze(0)
+
         
 
 class SelfAttentionBlock(nn.Module):
