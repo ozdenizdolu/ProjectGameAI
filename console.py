@@ -74,6 +74,7 @@ import torch
 from torch.nn.functional import mse_loss # Do not use cross entropy of torch's
 import matplotlib
 import matplotlib.pyplot as plt
+from torch.profiler import profile, record_function, ProfilerActivity
 
 from mcts import *
 from game.tictactoe import TicTacToe as tct
