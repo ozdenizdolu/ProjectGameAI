@@ -5,11 +5,12 @@ Refactoring will be needed at some point.
 current_device parameter seems to be obsolete.
 divide translator from the nn
 """
+import math
 
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-import math
+from torch.profiler import profile, record_function, ProfilerActivity
 
 class TicTacToe_defaultNN(nn.Module):
     
@@ -101,53 +102,10 @@ class NetworkWithMultiHeadAttention(nn.Module):
         self.input_embedder = nn.Linear(27, dim,
                                         bias = False, device=device)
         
-        self.body = nn.Sequential(
-            
-            WithResidual(
-                MultiHeadSelfAttentionBlock(dim, heads, device=device)
-                ),
-            
-            nn.LayerNorm((dim,), device=device),
-            
-            WithResidual(
-                nn.Sequential(
-                    nn.Linear(dim, dim*intra_expansion, device=device),
-                    nn.ReLU(),
-                    nn.Linear(dim*intra_expansion, dim, device=device))
-                ),
-            
-            nn.LayerNorm((dim,), device=device),
-            
-            WithResidual(
-                MultiHeadSelfAttentionBlock(dim, heads, device=device)
-                ),
-            
-            nn.LayerNorm((dim,), device=device),
-            
-            WithResidual(
-                nn.Sequential(
-                    nn.Linear(dim, dim*intra_expansion, device=device),
-                    nn.ReLU(),
-                    nn.Linear(dim*intra_expansion, dim, device=device))
-                ),
-            
-            nn.LayerNorm((dim,), device=device),
-            
-            WithResidual(
-                MultiHeadSelfAttentionBlock(dim, heads, device=device)
-                ),
-            
-            nn.LayerNorm((dim,), device=device),
-            
-            WithResidual(
-                nn.Sequential(
-                    nn.Linear(dim, dim*intra_expansion, device=device),
-                    nn.ReLU(),
-                    nn.Linear(dim*intra_expansion, dim, device=device))
-                ),
-            
-            nn.LayerNorm((dim,), device=device)
-            
+        self.body = nn.Sequential(*[
+            TransformerEncoder(dim, heads, device,
+                               intra_expansion=intra_expansion)
+            for i in range(6)]
             )
         
         self.dist_head = nn.Sequential(
@@ -167,7 +125,34 @@ class NetworkWithMultiHeadAttention(nn.Module):
         x = self.body(x)
         return self.dist_head(x), self.eval_head(x)
         
-
+class TransformerEncoder(nn.Module):
+    
+    def __init__(self, dim, heads, device, intra_expansion = 5):
+        super().__init__()
+        self.d = dim
+        self.h = heads
+        self.body = nn.Sequential(
+        
+            WithResidual(
+                MultiHeadSelfAttentionBlock(dim, heads, device=device)
+                ),
+            
+            nn.LayerNorm((dim,), device=device),
+            
+            WithResidual(
+                nn.Sequential(
+                    nn.Linear(dim, dim*intra_expansion, device=device),
+                    nn.ReLU(),
+                    nn.Linear(dim*intra_expansion, dim, device=device))
+                ),
+            
+            nn.LayerNorm((dim,), device=device))
+        
+    
+    def forward(self, x):
+        return self.body(x)
+        
+        
 
 class WithResidual(nn.Module):
     
@@ -250,6 +235,7 @@ class MultiHeadSelfAttentionBlock(nn.Module):
         attention = F.softmax(
             torch.div(
             torch.matmul(queries, torch.transpose(keys,-1,-2)),
+            # torch.einsum('abij,abjk->abik', queries, torch.transpose(keys,-1,-2)),
             math.sqrt(self.hidden_dim)), dim = -1)
         
         # The product is of shape (N, H, T, d_k)

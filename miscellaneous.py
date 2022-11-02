@@ -82,3 +82,10 @@ def cross_entropy(output, target):
     return torch.mul(-1., torch.mean(
         torch.sum(torch.mul(torch.log(torch.add(output, 10**-20)), target), dim = 1),
         dim = 0))
+
+def generate_init_code(*attributes):
+    """A Macro for coding. """
+    
+    return ''.join(['self._{0} = {0}\n'.format(attribute)
+                    for attribute in attributes])
+

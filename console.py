@@ -1,5 +1,7 @@
 """
-This module is intended for development purposes.
+This module is intended for development purposes. Changes to this module
+only represent some of the experiments done at the time of the change,
+and should not be taken as a part of the codebase.
 
 
 PROJECT COMMITMENTS (FORMAT THIS LATER ON):
@@ -106,7 +108,8 @@ random_agent = agents.RandomAgent()
 
 device = 'cpu'
 
-net = NetworkWithMultiHeadAttention(32, 8, device)
+net = NetworkWithMultiHeadAttention(128, 16, device)
+# net = TowardsAttention(10, device)
 net.eval()
 tr = TokenLikeTicTacToeTranslator()
 
@@ -298,6 +301,8 @@ def load_UCT_data(neural_network = None):
         new_data.append(new_a_data)
     
     return tuple(new_data)
+
+
 
 
 def supervised_train(net, epochs, data,
