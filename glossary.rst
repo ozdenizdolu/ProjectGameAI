@@ -15,7 +15,7 @@ to payoffs.
 evaluator
 ---------
 
-A function which is used by Monte Carlo tree search to provide probability
+A callable which is used by Monte Carlo tree search to provide probability
 distributions on possible moves and the evaluation of game states. It
 accepts three parameters: game_state, moves, player and outputs a tuple
 (prior_probabilities, evaluation) where prior probabilities is a mapping
@@ -23,8 +23,8 @@ of legal moves to probabilites which encodes a distribution on legal moves
 at game_state, and evaluation is a mapping of players of the game to the
 evaluation of game_state with respect to the respective players.
 The inputs, moves and player, are the legal moves at the game_state
-and the player having the turn, respectively; they are provided only for
-performance.
+and the player having the turn, respectively; they can also be deduced from
+the game state, but they are provided to improve performance.
 
 
 game
@@ -50,18 +50,26 @@ they are thought of as data storing only the variables needed
 for the generation of the possible game states one move later.
 The methods expected from a game state are:
 
-# is_game_over()
-# outcomes(move, pickone=False)
-# game_final_evaluation()
-# game()
-# turn()
-# moves()
-# after(move, outcome)
+is_game_over()
+
+outcomes(move, pickone=False)
+
+game_final_evaluation()
+
+game()
+
+turn()
+
+moves()
+
+after(move, outcome)
 
 
 
 game state calculator
 ---------------------
+
+
 
 
 player

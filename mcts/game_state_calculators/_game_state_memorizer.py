@@ -1,26 +1,21 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Jun 10 01:03:16 2022
-"""
-
 import random
-
 
 class GameStateMemorizer:
     '''
-    This class is a concrete implementation of a GameStateCalculator. This one works by
-    holding every visited game_state in memory.
+    This class is a concrete implementation of a GameStateCalculator.
+    
+    This one works by holding every visited game_state in memory.
     '''
     
     def __init__(self, root_game_state):
-        self._root = MemorizerNode(root_game_state)
+        self._root = _MemorizerNode(root_game_state)
     
     def move_iterator(self):
         return MemorizedIterator(self._root)
     
-    def initialize(self):
-        return self._root.state, self._root._moves.keys() , self._root.turn
-    
+    def request_root(self):
+        return self._root._as_game_state_information()
+
 
 class MemorizedIterator:
     
@@ -31,11 +26,10 @@ class MemorizedIterator:
     
     def next_outcome(self, game_move):
         assert not self._terminated
-        assert not self._hit_ghost, ('Failed use of Memorized iterator.' +
+        assert not self._hit_ghost, ('Failed use of Memorized iterator. ' +
                                    'Check tree_policy for bugs. ' +
                                    'Iterator is called after it is finished.')
         move = self.current._moves[game_move]
-        # selected_outcome = rng.choice(move.outcomes, p = move.p)
         selected_outcome = random.choices(move.outcomes, weights=move.p).pop()
         try:
             self.current = move.children_states[selected_outcome]
@@ -51,9 +45,12 @@ class MemorizedIterator:
         
         if self._hit_ghost:
             # This node was previously not visited. Recording it.
-            new_node = MemorizerNode(self.current.state.after(
+            new_node = _MemorizerNode(self.current.state.after(
                 self._leading_game_move, self._leading_outcome))
-            self.current._moves[self._leading_game_move].children_states[self._leading_outcome] = new_node
+            
+            (self.current._moves[self._leading_game_move]
+             .children_states[self._leading_outcome]) = new_node
+            
             self.current = new_node
         else:
             # Only allow termination for visited nodes if they are 
@@ -67,12 +64,10 @@ class MemorizedIterator:
         #For assertion checks
         self._terminated = True
         
-        return (self.current.is_game_over, self.current.game_final_evaluation,
-                self.current.state, self.current._moves.keys(),
-                self.current.turn)
+        return self.current._as_game_state_information()
         
 
-class MemorizerNode:
+class _MemorizerNode:
     """
     ...
     
@@ -89,16 +84,36 @@ class MemorizerNode:
             self.game_final_evaluation = None
         self._moves = {}
         for move in game_state.moves():                                                     #EXPECT moves() from GameState
-            self._moves[move] = MemorizerMove(*game_state.outcomes(move))                 #EXPECT a tuple of lists of same size.
+            self._moves[move] = _MemorizerMove(*game_state.outcomes(move))                 #EXPECT a tuple of lists of same size.
         self.turn = self.state.turn()
+        
+    def _as_game_state_information(self):
+        return MemorizerGameStateInformation(
+                self.is_game_over,
+                self.game_final_evaluation,
+                self.state,
+                self._moves.keys(),
+                self.turn)
 
-class MemorizerMove:
+class _MemorizerMove:
     
     def __init__(self, outcomes, p):
         self.outcomes = outcomes
+        #p is the probabilities of outcomes.
         self.p = p
         self.children_states = {}
         
 
-
-
+class MemorizerGameStateInformation:
+    
+    def __init__(self,
+                 is_game_over,
+                 game_final_evaluation,
+                 game_state,
+                 legal_moves,
+                 turn):
+        self.is_game_over = is_game_over
+        self.game_final_evaluation = game_final_evaluation
+        self.game_state = game_state
+        self.legal_moves = legal_moves
+        self.turn = turn

@@ -185,7 +185,7 @@ class ConsoleGameSession(GameSessionTemplate):
         self._agent_dict = agent_dict
         self._delay = delay
         self._history = [self._state]
-        
+
     def current_state(self):
         return self._state
     

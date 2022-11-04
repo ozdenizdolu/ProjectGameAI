@@ -1,21 +1,15 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Jun 12 22:43:06 2022
-"""
-
 import unittest
 
 import numpy as np
 
-from .. import evaluators
-from .. import mcts_logic
-
-mcts = mcts_logic.mcts
+from evaluator.evaluators import random_playout_evaluator
+from .. import mcts, uct
 
 
-class TestsMCTS(unittest.TestCase):
+class TestsUCT(unittest.TestCase):
     
-    def mock_game_generator(children):
+    @classmethod
+    def mock_game_generator(cls, children):
         # Create a gamestate class of a game of depth 1
         # and return an instance of it
         # for testing purposes. children is a dict whose
@@ -66,12 +60,11 @@ class TestsMCTS(unittest.TestCase):
         
         def with_parameters(times, branching, evaluation, correct_visits):
             
-            tree = mcts(TestsMCTS.mock_game_generator(
+            tree = uct(self.mock_game_generator(
                 {i: evaluation for i in range(branching)}),
-                evaluators.random_playout_evaluator,
-                times, return_type = 'tree')
+                times, 1, return_type = 'tree')
             
-            leafs = tree.root().moves.values()
+            leafs = tree._core_tree.root.moves.values()
             
             self.assertEqual(len(leafs), branching)
             # print(set(map(lambda child: child.visits, leafs)))
@@ -94,7 +87,6 @@ class TestsMCTS(unittest.TestCase):
         with_parameters(100, 10, 100, 1)
         
         # with_parameters(100, 10, 0, 10)
-            
             
             
             

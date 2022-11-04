@@ -21,21 +21,20 @@ class UCTAgent:
     The class of agents which play using the UCT algorithm.
     """
     
-    def __init__(self, times, move_selector=mcts.UCT_move_selector,
+    def __init__(self, times_per_move, 
                  exploration_constant=1, temperature=0.05):
-        self._times = times
-        self._move_selector = move_selector
+        
+        self._times_per_move = times_per_move
         self._exploration_constant = exploration_constant
         self._temperature = temperature
     
     def ask(self, state):
-        return mcts.mcts(state,
-                         mcts.random_playout_evaluator,
-                         self._times,
-                         self._move_selector,
-                         self._exploration_constant,
-                         self._temperature,
-                         return_type = 'move')
+        return mcts.uct(
+            state,
+            self._times_per_move,
+            self._exploration_constant,
+            temperature = self._temperature,
+            return_type = 'move')
     
     def __str__(self):
         return 'UCT agent'
@@ -115,8 +114,35 @@ class MCTSAgent:
 
 
 
-
-
+class UserConsoleAgentForTCT:
+    
+    def __init__(self):
+        pass
+    
+    def ask(self, state):
+        # Notify the spectator
+        print('\n'+str(state))
+        # Request move from the player
+        print('\nYour turn...')
+        while True:
+            in_ = input()
+            match = re.match('\d\d', in_)
+            if match is None:
+                if in_ == 'e':
+                    return
+                if in_ == 'p':
+                    break
+                print('Prompt not recognized.')
+                continue
+            x,y = map(int, match[0])
+            x,y = x-1,y-1
+            if (x,y) in map(lambda x: x[:-1],state.moves()):
+                break
+            else:
+                print('Move is not possible.')
+                continue
+        
+        return (x, y, state.turn())
 
 
 

@@ -1,10 +1,8 @@
-"""
-This module is responsible for the organization of game-independent
-information in the search tree.
+# This module is responsible for the organization of game-independent
+# information in the search tree.
 
-This module is freely used in the mcts module. Any change to this module
-should be applied carefully and, if possible, avoided.
-"""
+# This module is freely used in the mcts module. Any change to this module
+# should be applied carefully and, if possible, avoided.
 
 import networkx as nx
 from treelib import Tree
@@ -16,6 +14,7 @@ class CoreSearchTree:
     def __init__(self, root_move_prior_probabilities, root_player):
         self.root = CoreSearchNode(root_move_prior_probabilities, root_player)
     
+    #TODO send these visualizations to search tree.
     def visualize_nx(self):
         G = nx.Graph()
         G.add_node(self.root)
@@ -48,6 +47,7 @@ class CoreSearchTree:
 class CoreSearchNode:
     
     def __init__(self, prior_probabilities, player):
+        # Player is needed for backup policy
         self.player = player
         self.moves = {move: CoreSearchMove(prior_probability) 
                 for move, prior_probability in prior_probabilities.items()}    #EXPECT prior_probabilities to be a mapping supporting items(), EVALUATOR
