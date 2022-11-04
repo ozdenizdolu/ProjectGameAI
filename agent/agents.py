@@ -1,7 +1,7 @@
 import random
 import math
 
-import mcts
+from mcts import mcts, uct
 from miscellaneous import after, PDist
 
 class RandomAgent:
@@ -29,7 +29,7 @@ class UCTAgent:
         self._temperature = temperature
     
     def ask(self, state):
-        return mcts.uct(
+        return uct(
             state,
             self._times_per_move,
             self._exploration_constant,
@@ -90,26 +90,27 @@ class EvaluatorAgent:
     def __str__(self):
         return 'Evaluator agent'
 
-class MCTSAgent:
-    """
-    An agent which uses mcts search and an evaluator to decide their moves.
-    """
+# TODO: redo this, mcts package has changed
+# class MCTSAgent:
+#     """
+#     An agent which uses mcts search and an evaluator to decide their moves.
+#     """
     
-    def __init__(self, evaluator, mcts_steps, move_selector,
-                 exploration_constant, temperature):
-        self._evaluator = evaluator
-        self._mcts_steps = mcts_steps
-        self._move_selector = move_selector
-        self._exploration_constant = exploration_constant
-        self._temperature = temperature
+#     def __init__(self, evaluator, mcts_steps, move_selector,
+#                  exploration_constant, temperature):
+#         self._evaluator = evaluator
+#         self._mcts_steps = mcts_steps
+#         self._move_selector = move_selector
+#         self._exploration_constant = exploration_constant
+#         self._temperature = temperature
     
-    def ask(self, state):
-        return mcts.mcts(state, self._evaluator, self._mcts_steps,
-                         self._move_selector, self._exploration_constant,
-                         self._temperature, return_type='move')
+#     def ask(self, state):
+#         return mcts.mcts(state, self._evaluator, self._mcts_steps,
+#                          self._move_selector, self._exploration_constant,
+#                          self._temperature, return_type='move')
 
-    def __str__(self):
-        return 'MCTS agent'
+#     def __str__(self):
+#         return 'MCTS agent'
 
 
 

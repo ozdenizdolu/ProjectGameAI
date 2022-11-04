@@ -178,48 +178,6 @@ def calculate_loss(network, data, dist_loss_fn, eval_loss_fn):
             eval_loss_fn(eval_net, eval_target))
 
 
-class ConsoleGameSession(GameSessionTemplate):
-    
-    def __init__(self, state, agent_dict, * , delay = 0.6):
-        self._state = state
-        self._agent_dict = agent_dict
-        self._delay = delay
-        self._history = [self._state]
-
-    def current_state(self):
-        return self._state
-    
-    def proceed(self, player):
-        time.sleep(self._delay)
-        agent = self._agent_dict[player]
-        print('Agent {} as {} is thinking...\n'.format(
-            str(agent), str(player)))
-        move = agent.ask(self.current_state())
-        if move not in self.current_state().moves():
-            raise RuntimeError('Agent {} committed an illegal move...'.format(
-                agent))
-        self._state = self._state.after(move, None)
-        print('Agent {} has played {}\n'.format(str(agent), str(move)))
-        print('Current Game State:\n{}'.format(str(self._state)))
-        self._history.append(self._state)
-    
-    def initialize(self):
-        print('The game is starting...\n')
-        print('The agents play as:')
-        for player, agent in self._agent_dict.items():
-            print('{} plays as {}'.format(str(agent), str(player)))
-    
-    def finalize(self):
-        print('The game has ended.\n{}\n'.format(str(self._state)))
-        print('''The results are: 
-              \n{}'''.format(str(self._state.game_final_evaluation())))
-        print('The agents play as:')
-        for player, agent in self._agent_dict.items():
-            print('{} plays as {}'.format(str(agent), str(player)))
-    
-    def return_value(self):
-        return self._history
-    
 def generate_all_UCT_data(mcts_steps, temp,
                           stop_at = math.inf, results = None):
     if results is None:
@@ -244,8 +202,6 @@ def generate_all_UCT_data(mcts_steps, temp,
     return [(state, distribution, evaluation)
                 for state, out in results.items()
                 for distribution, evaluation in [out]]
-            
-    
 
 def generate_UCT_training_data(num_of_games, mcts_steps_per_move, temperature):
     training_data = []
@@ -508,58 +464,58 @@ def request_move_from_console(state, move_interpreter):
     return move
     
 #Temporary
-def play_tct():
-    # Initialize the game
-    ga = tct.initial_state()
-    # Notify the spectator
-    print('\n\n')
-    print(ga)
-    print('\n\nGame is starting')
-    # Create the mood
-    time.sleep(2)
+# def play_tct():
+#     # Initialize the game
+#     ga = tct.initial_state()
+#     # Notify the spectator
+#     print('\n\n')
+#     print(ga)
+#     print('\n\nGame is starting')
+#     # Create the mood
+#     time.sleep(2)
     
-    while not ga.is_game_over():
-        # Notify the spectator about what is happening
-        print('\n\nComputer is thinking...')
-        # Receive the move from the player (maybe some more data as well)
-        move = mcts(ga, random_playout_evaluator,
-                    10000, UCT_move_selector,
-                    4.1, 1)
-        # Update the game
-        ga = ga.after(move, None)
-        # Notify the spectator
-        print('\n'+str(ga))
-        # ... not a clean code
-        if ga.is_game_over():
-            break
-        # Request move from the player
-        print('\nYour turn...')
-        while True:
-            in_ = input()
-            match = re.match('\d\d', in_)
-            if match is None:
-                if in_ == 'e':
-                    globals()['last_game'] = ga
-                    return
-                if in_ == 'p':
-                    break
-                print('Prompt not recognized.')
-                continue
-            x,y = map(int, match[0])
-            x,y = x-1,y-1
-            if (x,y) in map(lambda x: x[:-1],ga.moves()):
-                break
-            else:
-                print('Move is not possible.')
-                continue
-        # update the game with the move
-        ga = ga.after((x, y, ga.turn()),None)
-        # Notify the spectator
-        print('YOU PLAYED\n' + str(ga))
+#     while not ga.is_game_over():
+#         # Notify the spectator about what is happening
+#         print('\n\nComputer is thinking...')
+#         # Receive the move from the player (maybe some more data as well)
+#         move = mcts(ga, random_playout_evaluator,
+#                     10000, UCT_move_selector,
+#                     4.1, 1)
+#         # Update the game
+#         ga = ga.after(move, None)
+#         # Notify the spectator
+#         print('\n'+str(ga))
+#         # ... not a clean code
+#         if ga.is_game_over():
+#             break
+#         # Request move from the player
+#         print('\nYour turn...')
+#         while True:
+#             in_ = input()
+#             match = re.match('\d\d', in_)
+#             if match is None:
+#                 if in_ == 'e':
+#                     globals()['last_game'] = ga
+#                     return
+#                 if in_ == 'p':
+#                     break
+#                 print('Prompt not recognized.')
+#                 continue
+#             x,y = map(int, match[0])
+#             x,y = x-1,y-1
+#             if (x,y) in map(lambda x: x[:-1],ga.moves()):
+#                 break
+#             else:
+#                 print('Move is not possible.')
+#                 continue
+#         # update the game with the move
+#         ga = ga.after((x, y, ga.turn()),None)
+#         # Notify the spectator
+#         print('YOU PLAYED\n' + str(ga))
     
-    #Notify the spectator (maybe return other data as well).
-    print('\n\nGame is over!\n\nThe results are:')
-    print(ga.game_final_evaluation())
+#     #Notify the spectator (maybe return other data as well).
+#     print('\n\nGame is over!\n\nThe results are:')
+#     print(ga.game_final_evaluation())
 
 #Temporary
 def play_reversi(mcts_steps = 1000):

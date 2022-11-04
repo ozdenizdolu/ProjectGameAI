@@ -5,6 +5,8 @@ This module contains default evaluators.
 import random
 
 def random_playout_evaluator(game_state, moves, player):
+    """Gives uniform distribution on the possible moves (actions), and
+    evaluates the position by the result of a random playout."""
     uniform_probabilities = {move: 1/len(moves) for move in moves}
     current_state = game_state
     while not current_state.is_game_over():

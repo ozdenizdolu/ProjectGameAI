@@ -1,7 +1,7 @@
 # This module is responsible for the organization of game-independent
 # information in the search tree.
 
-# This module is freely used in the mcts module. Any change to this module
+# This module is freely used in the mcts package. Any change to this module
 # should be applied carefully and, if possible, avoided.
 
 import networkx as nx

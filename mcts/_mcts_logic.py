@@ -5,7 +5,7 @@ from miscellaneous import after
 from .game_state_calculators._game_state_memorizer import GameStateMemorizer
 from ._core_search_tree import CoreSearchTree, CoreSearchNode
 from .search_tree import SearchTree
-from .move_selectors import prioritize_non_visited_move_selector_factory
+from .move_selectors import alpha_zero_move_selector_factory
 
 
 # This is used when the game do not support a special game state calculator.
@@ -13,7 +13,7 @@ _default_game_state_calculator_factory = GameStateMemorizer
 
 
 _default_move_selector_factory = (
-    lambda: prioritize_non_visited_move_selector_factory(1))
+    lambda: alpha_zero_move_selector_factory(1))
 
 
 def mcts(data,
