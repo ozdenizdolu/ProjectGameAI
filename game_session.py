@@ -5,9 +5,9 @@ logic of game sessions. Each game session can (and should)
 create their own documentation for the run method. Run method can return
 things.
 """
-
+import time
 from abc import ABC, abstractmethod
-        
+
 class GameSessionTemplate(ABC):
     """
     Template method design pattern applied for game sessions.

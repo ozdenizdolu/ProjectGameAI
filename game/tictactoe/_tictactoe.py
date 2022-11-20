@@ -117,8 +117,8 @@ class TicTacToeState:
             return {TicTacToe.X: -1., TicTacToe.O: 1.}
         else:
             assert False
-                
-        
+    
+    
     def game(self):
         return TicTacToe
     

@@ -1,8 +1,12 @@
 import random
 import math
+import re
 
 from mcts import mcts, uct
 from miscellaneous import after, PDist
+
+from game.reversi import Reversi
+from game.tictactoe import TicTacToe
 
 class RandomAgent:
     """
@@ -50,7 +54,7 @@ class EvaluatorAgent:
         self._evaluator = evaluator
         self._distribution_weight = distribution_weight
         self._evaluation_weight = evaluation_weight
-        self._does_consider_evaluation = evaluation_weight != 0.0
+        self._does_consider_evaluation = (evaluation_weight != 0.0)
         if not math.isclose(distribution_weight + evaluation_weight, 1.0):
             raise ValueError('Sum of weights should be 1.')
         
@@ -90,32 +94,65 @@ class EvaluatorAgent:
     def __str__(self):
         return 'Evaluator agent'
 
-# TODO: redo this, mcts package has changed
-# class MCTSAgent:
-#     """
-#     An agent which uses mcts search and an evaluator to decide their moves.
-#     """
+class MCTSAgent:
+    """
+    An agent which uses mcts search and an evaluator to decide their moves.
+    """
     
-#     def __init__(self, evaluator, mcts_steps, move_selector,
-#                  exploration_constant, temperature):
-#         self._evaluator = evaluator
-#         self._mcts_steps = mcts_steps
-#         self._move_selector = move_selector
-#         self._exploration_constant = exploration_constant
-#         self._temperature = temperature
+    def __init__(self, evaluator, mcts_steps, move_selector, temperature):
+        self._evaluator = evaluator
+        self._mcts_steps = mcts_steps
+        self._move_selector = move_selector
+        self._temperature = temperature
     
-#     def ask(self, state):
-#         return mcts.mcts(state, self._evaluator, self._mcts_steps,
-#                          self._move_selector, self._exploration_constant,
-#                          self._temperature, return_type='move')
+    def ask(self, state):
+        return mcts(state, self._evaluator, self._mcts_steps,
+                    move_selector=self._move_selector,
+                    temperature=self._temperature, return_type='move')
 
-#     def __str__(self):
-#         return 'MCTS agent'
-
-
+    def __str__(self):
+        return 'MCTS agent'
 
 
-class UserConsoleAgentForTCT:
+def user_for_game(game):
+    if game == TicTacToe:
+        return _UserConsoleAgentForTCT()
+    elif game == Reversi:
+        return _UserConsoleAgentForReversi()
+    else:
+        raise NotImplementedError('Given game is not recognized...')
+        
+class _UserConsoleAgentForReversi:
+    
+    def __init__(self):
+        pass
+    
+    def ask(self, state):
+        # Request move from the player
+        print('\nYour turn...')
+        while True:
+            in_ = input()
+            #TODO include the pass move
+            match = re.match('\d\d', in_)
+            if match is None:
+                if in_ == 'e':
+                    break
+                if in_ == 'pass' and Reversi.PASS_MOVE in ga.moves():
+                    move = Reversi.PASS_MOVE
+                    break
+                print('Prompt not recognized.')
+                continue
+            x,y = map(int, match[0])
+            x,y = x-1,y-1
+            if (x,y) in ga.moves():
+                move = (x,y)
+                break
+            else:
+                print('Move is not possible.')
+                continue
+        return move
+
+class _UserConsoleAgentForTCT:
     
     def __init__(self):
         pass

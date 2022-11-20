@@ -58,6 +58,7 @@ class CoreSearchMove:
     def __init__(self, prior_probability):
         self.prior_probability = prior_probability
         self.visits = 0
+        #action_value is with respect to the player with the turn.
         self.action_value = 0
         self.outcome_dict = {}
         

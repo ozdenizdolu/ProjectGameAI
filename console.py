@@ -87,7 +87,6 @@ from neural_network import (TicTacToe_defaultNN,
                             NetworkWithAttention,
                             MultiHeadSelfAttentionBlock,
                             NetworkWithMultiHeadAttention)
-from training_tools import TrainingGameSession as TGS
 from training_tools import TournamentGameSession as ToGS
 from game_session import GameSessionTemplate
 from agent import agents
@@ -260,7 +259,7 @@ def load_UCT_data(neural_network = None):
 
 
 
-
+#TODO: refactor this
 def supervised_train(net, epochs, data,
                      move_loss_function,
                      eval_loss_function,

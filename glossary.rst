@@ -52,7 +52,7 @@ The methods expected from a game state are:
 
 is_game_over()
 
-outcomes(move, pickone=False)
+outcomes(move, pick_one=False)
 
 game_final_evaluation()
 
@@ -63,6 +63,8 @@ turn()
 moves()
 
 after(move, outcome)
+if outcome is None, then pick one randomly according to the rules of the game.
+Should be equivalent to after(move, state.outcomes(move, pick_one=True))
 
 
 

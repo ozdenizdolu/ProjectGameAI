@@ -1,7 +1,7 @@
 import math
 import random
 
-from miscellaneous import after
+from miscellaneous import after, PDist
 from .game_state_calculators._game_state_memorizer import GameStateMemorizer
 from ._core_search_tree import CoreSearchTree, CoreSearchNode
 from .search_tree import SearchTree
@@ -21,6 +21,8 @@ def mcts(data,
          times,
          move_selector = None,
          temperature = 1,
+         dirichlet_noise_parameter = None,
+         noise_contribution = None,
          return_type = 'move'):
     """
     An implementation of the Monte Carlo tree search.
@@ -56,8 +58,8 @@ def mcts(data,
         This is either 'move', 'tree', or 'distribution'. If 'move' then
         the move selected according to temperature and the search will
         be returned. If 'distribution' then the distribution on the moves
-        will be returned in dict format. If 'tree', then the search tree
-        will be returned.
+        will be returned as a miscellaneous.PDist.
+        If 'tree', then the search tree will be returned.
 
     Returns
     -------
@@ -108,13 +110,15 @@ def mcts(data,
 
     if times < 0:
         raise ValueError('times must be positive.')
+        
+    
 
     # The main loop of the algorithm.
 
     for _ in range(times):
         address, hit_ghost, new_game_state_info = _tree_policy(
             core_tree, game_state_calculator,
-            move_selector)
+            move_selector, dirichlet_noise_parameter, noise_contribution)
 
         if new_game_state_info.is_game_over:
             # Evaluation is decided by the game rules.
@@ -149,10 +153,13 @@ def mcts(data,
         game_move: temperature_adjusted_visits[game_move]/temperaturated_sum
         for game_move, tree_move in core_tree.root.moves.items()}
     
-    move_p_as_list = list(move_probabilities.items())
+    # move_p_as_list = list(move_probabilities.items())
+    
+    move_probabilities_as_PDist = PDist(*zip(*move_probabilities.items()),
+                                    normalize = False, supports_hash= True)
     
     if return_type == 'distribution':
-        return move_probabilities
+        return move_probabilities_as_PDist
     
     if return_type == 'move':
         # The code below now uses random library instead of numpy.
@@ -163,18 +170,21 @@ def mcts(data,
         #                   dtype = 'object'),
         #     p = np.array(list(map(lambda x: x[1], move_p_as_list))))
         
-        return random.choices(
-            list(map(lambda x: x[0], move_p_as_list)),
-            weights=list(map(lambda x: x[1], move_p_as_list))
-            ).pop()
+        # Changed in favor of PDist
+        # return random.choices(
+        #     list(map(lambda x: x[0], move_p_as_list)),
+        #     weights=list(map(lambda x: x[1], move_p_as_list))
+        #     ).pop()
+        return move_probabilities_as_PDist.sample()
         
     
     raise ValueError('Unknown return type ' + str(return_type))
 
 def _tree_policy(core_tree, game_state_calculator,
-                move_selector):
+                move_selector, dirichlet_noise_parameter, noise_contribution):
     address = []
     current = core_tree.root
+    currently_at_root = True
     game_iterator = game_state_calculator.move_iterator()
     while True:
         if len(current.moves) == 0:
@@ -182,8 +192,13 @@ def _tree_policy(core_tree, game_state_calculator,
             address.append((current, None, None))
             hit_ghost = False
             break
-
-        move = move_selector(current)
+        if currently_at_root:
+            move = move_selector(
+                current,
+                dirichlet_noise_parameter,
+                noise_contribution)
+        else:
+            move = move_selector(current, None, None)
         outcome = game_iterator.next_outcome(move)
         address.append((current, move, outcome))
 
