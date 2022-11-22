@@ -52,19 +52,21 @@ def generate_data(game,
             # Advance the game with normal rules
             game_state = game_state.after(move, None)
             if game_state.is_game_over():
-                if verbose:
-                    print("Game "+str(game_number) +" is over.")
-                    print('{} {}/{}'.format(
-                        termination_condition,
-                        game_number if termination_condition == 'g'
-                        else len(data),
-                        termination_number))
                 break
         
         result = game_state.game_final_evaluation()
         
-        data.extend([(state, move_dist, result) for state,move_dist in raw_game_data])
+        data.extend([(state, move_dist, result)
+                     for state,move_dist in raw_game_data])
         
+        if verbose:
+            print("Game "+str(game_number) +" is over.")
+            print('{} {}/{}'.format(
+                termination_condition,
+                game_number if termination_condition == 'g'
+                else len(data),
+                termination_number))
+            
         # Check termination condition
         if termination_condition == 'g':
             if game_number >= termination_number:

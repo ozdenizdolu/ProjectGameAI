@@ -23,6 +23,8 @@ class Reversi:
     WHITE = 1
     BLACK = -1
     
+    players = [WHITE, BLACK]
+    
     @classmethod
     def initial_state(cls):
         board = tuple(tuple(
@@ -82,6 +84,10 @@ def _look_for_match(board, square, direction, my_colour):
             return None
 
 class ReversiGameState:
+    
+    # self._board is a tuple of tuples. Each item is a row.
+    
+    
     #after (move, outcome) return gamestate
     # is_game_over
     # moves
@@ -189,7 +195,7 @@ class ReversiGameState:
                 return [Reversi.PASS_MOVE]
         else:
             #method creates duplicate moves so convert to set.
-            return set(valid_moves)
+            return list(set(valid_moves))
     
 
     def after(self, move, outcome):
