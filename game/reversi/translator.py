@@ -4,7 +4,7 @@ from ._reversi import Reversi
 
 #TODO I FORGOT PASS MOVE!!
 
-def state_as_two_flattened_planes(state):
+def state_as_two_flattened_planes_and_player_plane(state):
     board = torch.tensor(state._board)
     white_plane = torch.where(board == Reversi.WHITE,
                     torch.ones_like(board, dtype=torch.float),
@@ -12,8 +12,14 @@ def state_as_two_flattened_planes(state):
     black_plane = torch.where(board == Reversi.BLACK,
                     torch.ones_like(board, dtype=torch.float),
                     torch.zeros_like(board, dtype=torch.float)).flatten()
+    # Like in AlphaGoZero paper
+    if not state.turn() in [Reversi.WHITE, Reversi.BLACK]:
+        raise ValueError("State is not a reversi state.")
+    player_color = 1. if state.turn() == Reversi.WHITE else 0.
+    player_plane = (torch.ones_like(board, dtype=torch.float) * player_color
+                    ).flatten()
     
-    return torch.cat([white_plane, black_plane])
+    return torch.cat([white_plane, black_plane, player_plane])
 
 def dist_to_tensor(dist):
     #distribution is a mapping of moves to scalars.

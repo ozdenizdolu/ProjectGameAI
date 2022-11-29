@@ -152,8 +152,8 @@ class StandardReversiTranslator:
     
     def states_to_tensor(self, states, device):
         return torch.cat(
-            [rev_tr.state_as_two_flattened_planes(state).unsqueeze(0)
-            for state in states]).to(device)
+            [rev_tr.state_as_two_flattened_planes_and_player_plane(state
+            ).unsqueeze(0) for state in states]).to(device)
     
     def dists_to_tensor(self, move_distributions, device):
         return torch.cat(

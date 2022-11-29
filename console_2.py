@@ -3,12 +3,79 @@
 
 #TODO: Use convolution, alphazero uses convolution and residual connections.
 
-#BUG: It plays the same game over and over on low temperatures
+#BUG-like: It plays the same game over and over on low temperatures
+
+#NOTE: Cross entropy seems to be negative because I show the difference
+# from the best possible.
+
+#BUG: Translator is broken! The network does not receive whose turn
+# it is. I realized this when I saw that move error decreased but evalaution
+# error did not. #BUG !! We want the evaluation wrt white it's why it couldn't
+# learn the data. We should either want the evalaution wrt the player
+# with the turn, and rotate the board accordingly, or we should 
+# clearly make the players accessible to the network. #FIXED
+# But why it didn't learn anything? Even though it is unclear whose move
+# is that, it still knows the white and black pieces. Even more interestingly
+# it learned the move distribution without knowing whose move it is.
+# Even if we supplied it lacking information, it should have memorized
+# the data! It did not even memorize it!
 
 # Potential #BUG: Does it take the winner moves or all moves for training?
 # Or do we include only a fraction of the game states. We should not give
 # correlated training examples because it alters the settings SGD is used
 # in.
+
+
+# Experiment 
+# 5000 states did not fit even with many epochs. Especially the
+# evaluation loss suffers. Body of the network is 7 resnets with
+# 300 neurons each. Settings were
+# common_settings = {
+
+# 'game': Reversi,
+# 'trdev': 'cpu',#training device
+# 'mpdev': 'cpu',#mtcs device
+
+# 'loop_count': 5,
+
+# 'd_loss': cross_entropy,
+# 'e_loss': mse_loss,
+
+# 'weight_decay': None,
+
+# # Testing Settings
+
+# 'in_mcts_testing': True,
+# # MCTS
+# 'mcts_step_testing': 10,
+# 'move_selector_testing': azms(1),
+# 'temperature_testing': 0.05,
+# # Evaluator
+# 'move_dist_weight_testing': 1.,
+# 'evaluation_weight_testing': 0.,
+
+# 'dirichlet_noise_parameter': 0.3,
+# 'noise_contribution': 0.25
+
+# }
+
+# varied_settings = {
+
+# # Self-Play Settings
+# 'mcts_step_self_play': [256],
+# 'move_selector_self_play': [azms(i) for i in [1]],
+# 'temperature_self_play': [0.5],
+
+# # Training Settings
+# 'max_data_length': [50000],
+# 'batches': [2500],
+# 'bs': [32],
+# 'new_states': [5000],
+
+# 'lr': [0.05],
+# 'momentum': [0.9],
+
+# }
 #%%
 
 import pprint
@@ -53,14 +120,6 @@ def load_all_uct_data_TCT():
         global uct_data
         uct_data = pickle.load(file)
         random.shuffle(uct_data)
-        
-        # training_data = raw_data[0:15000]
-        # test_data = raw_data[15000:18000]
-        # validation_data = raw_data[18000:]
-        
-        # trd = tr.translate_data(training_data, device)
-        # ted = tr.translate_data(test_data, device)
-        # vad = tr.translate_data(validation_data, device)
 
 
 def discretize_evaluation_TCT(evaluation):
@@ -102,64 +161,7 @@ def get_evaluator(network, device):
             translator.tensor_to_evals([state], evaluation)[0])
     return evaluator
 
-#TODO
-# class ReversiNetwork(nn.Module):
-    
-#     def __init__(self, device):
-#         super(ReversiNetwork, self).__init__()
-        
-#         self.translator = StandardReversiTranslator()
-        
-#         self.body = nn.Sequential(
-#             nn.Linear(#TODO, 200, device=device),
-#             nn.ReLU(),
-#             ResidualBlock(200, device=device),
-#             ResidualBlock(200, device=device)
-#             )
-            
-#         self.dist_head = nn.Sequential(
-#             nn.Linear(200, #TODO, device=device),
-#             nn.Softmax(dim=1)
-#             )
-        
-#         self.eval_head = nn.Sequential(
-#             nn.Linear(200, #TODO, device=device),
-#             nn.Tanh()
-#             )
 
-#     def forward(self, x):
-#         x = self.body(x)
-#         return self.dist_head(x), self.eval_head(x)
-
-class TCTNetwork(nn.Module):
-    
-    def __init__(self, device):
-        super(TCTNetwork, self).__init__()
-        
-        self.translator = StandardTicTacToeTranslator()
-        
-        self.body = nn.Sequential(
-            nn.Linear(27, 200, device=device),
-            nn.ReLU(),
-            ResidualBlock(200, device=device),
-            ResidualBlock(200, device=device),
-            )
-    
-        self.dist_head = nn.Sequential(
-            ResidualBlock(200, device=device),
-            nn.Linear(200, 9, device=device),
-            nn.Softmax(dim=1)
-            )
-        
-        self.eval_head = nn.Sequential(
-            ResidualBlock(200, device=device),
-            nn.Linear(200, 1, device=device),
-            nn.Tanh()
-            )
-        
-    def forward(self, x):
-        x = self.body(x)
-        return self.dist_head(x), self.eval_head(x)
 
 class ReversiNetwork(nn.Module):
     
@@ -169,24 +171,20 @@ class ReversiNetwork(nn.Module):
         self.translator = StandardReversiTranslator()
         
         self.body = nn.Sequential(
-            nn.Linear(2*8*8, 300, device=device),
+            nn.Linear(3*8*8, 1000),
             nn.ReLU(),
-            ResidualBlock(300, device=device),
-            ResidualBlock(300, device=device),
-            ResidualBlock(300, device=device),
-            ResidualBlock(300, device=device),
-            ResidualBlock(300, device=device),
-            ResidualBlock(300, device=device),
-            ResidualBlock(300, device=device),
+            ResidualBlock(1000, device),
+            ResidualBlock(1000, device),
+            ResidualBlock(1000, device),
             )
     
         self.dist_head = nn.Sequential(
-            nn.Linear(300, 8*8 + 1, device=device),
+            nn.Linear(1000, 8*8 + 1, device=device),
             nn.Softmax(dim=1),
             )
         
         self.eval_head = nn.Sequential(
-            nn.Linear(300, 1, device=device),
+            nn.Linear(1000, 1, device=device),
             nn.Tanh(),
             )
         
@@ -202,8 +200,8 @@ class Training_Environment:
                 loop_count,
                 mpdev,
                 trdev,
-                distribution_loss,
-                evaluation_loss,
+                d_loss,
+                e_loss,
                 mcts_step_self_play,
                 move_selector_self_play,
                 temperature_self_play,
@@ -236,8 +234,8 @@ class Training_Environment:
         self.loop_count = loop_count
         self.mpdev = mpdev
         self.trdev = trdev
-        self.distribution_loss = distribution_loss
-        self.evaluation_loss = evaluation_loss
+        self.d_loss = d_loss
+        self.e_loss = e_loss
         self.mcts_step_self_play = mcts_step_self_play
         self.move_selector_self_play = move_selector_self_play
         self.temperature_self_play = temperature_self_play
@@ -294,23 +292,23 @@ class Training_Environment:
         
         self.random_win_rates.append(
             compare(self.game,
-                    [default_agent, RandomAgent()], 10)[default_agent]/10.)
+                    [default_agent, RandomAgent()], 20)[default_agent]/20.)
         
         self.evaluator_random_win_rates.append(
             compare(self.game,
-                    [evaluator_agent, RandomAgent()], 10)[evaluator_agent]/10.)
+                    [evaluator_agent, RandomAgent()], 20)[evaluator_agent]/20.)
        
         #keep track of the loss per example in the pool
         if hasattr(self, 'x_pool'):
             with torch.no_grad():
-                optimum_dist_loss = self.distribution_loss(
+                optimum_dist_loss = self.d_loss(
                                         self.dist_pool, self.dist_pool)
                 
                 net_dist, net_eval = self.net(self.x_pool)
                 
-                dist_loss = (self.distribution_loss(net_dist, self.dist_pool)
+                dist_loss = (self.d_loss(net_dist, self.dist_pool)
                              - optimum_dist_loss)
-                eval_loss = self.evaluation_loss(net_eval, self.eval_pool)
+                eval_loss = self.e_loss(net_eval, self.eval_pool)
                 
                 pool_dist_loss = dist_loss.item()
                 pool_eval_loss = eval_loss.item()
@@ -324,23 +322,6 @@ class Training_Environment:
         self.pool_eval_loss_rates.append(pool_eval_loss)
         self.pool_length_record.append(pool_length)
        
-       
-        # =========== I assumed TCT for these =============
-        
-        # # Performance on data
-        
-        # #pick random 500 training data
-        # sample_size = 500
-        # current_data = random.sample(uct_data, sample_size)
-        
-        # self.data_test.append(
-        #     sum(1 if (discretize_evaluation(evaluation) == 
-        #               discretize_evaluation(get_evaluator(
-        #                   self.net, self.mpdev)(state)[1])) else 0
-        #     for state, move, evaluation in current_data)/sample_size)
-        
-        #☺ ===========================================
-        
         # We did not support mcts giving game evaluations
         # self.data_test_with_mcts.append(
         #     sum(1 if (discretize_evaluation(evaluation) == 
@@ -442,7 +423,7 @@ class Training_Environment:
             dist_optimum_tracker = []
             # Batch loop
             
-            optimum_dist_loss = self.distribution_loss(
+            optimum_dist_loss = self.d_loss(
                 self.dist_pool, self.dist_pool)
             
             for j in range(self.batches):                
@@ -458,9 +439,9 @@ class Training_Environment:
                 
                 net_dist, net_eval = self.net(batch_x)
                 
-                dist_loss = (self.distribution_loss(net_dist, batch_dist)
+                dist_loss = (self.d_loss(net_dist, batch_dist)
                              - optimum_dist_loss)
-                eval_loss = self.evaluation_loss(net_eval, batch_eval)
+                eval_loss = self.e_loss(net_eval, batch_eval)
                 
                 loss = dist_loss + eval_loss
                 
@@ -487,8 +468,40 @@ class Training_Environment:
             self.test_in()
         # Loop ended
         return
+    
+    # TODO: Add more methods which support the development, and let
+    # us do the training parts seperately
 
+    def generate_games(self, num_of_states, raw=False):
+        
+        self.net.eval()
+        self.net.to(device=self.mpdev)
+        raw_data = generate_data(
+            self.game,
+            's',
+            num_of_states,
+            get_evaluator(self.net, self.mpdev),
+            self.mcts_step_self_play,
+            self.move_selector_self_play,
+            self.temperature_self_play,
+            dirichlet_noise_parameter=self.dirichlet_noise_parameter,
+            noise_contribution=self.noise_contribution,
+            shuffle=True)
+        
+        if raw:
+            return raw_data
+        
+        x, dist, eva = self.net.translator.translate_data(
+            raw_data, self.trdev)
+        
+        return (x, dist, eva)
+    
+    def train_data(self, graph=True):
+        train_data(env.net, env.x_pool, env.dist_pool, env.eval_pool,
+                   env.lr, env.momentum, env.bs, env.batches, env.trdev,
+                   env.d_loss, env.e_loss, graph)
 
+#TODO WHY 3 train methods?
 def train_data(net,
                data_x,
                data_dist,
@@ -498,9 +511,43 @@ def train_data(net,
                bs,
                batches,
                device,
-               distribution_loss,
-               evaluation_loss,
-               graph = True):
+               d_loss,
+               e_loss,
+               graph = True,
+               record_frequency = -1):
+    """
+    
+
+    Parameters
+    ----------
+    record_frequency : TYPE, optional
+        If -1 or not given then the default is 1 per 100
+
+    Raises
+    ------
+    ValueError
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    
+    if record_frequency == -1:
+        record_frequency = 100
+    
+    def record():
+        # compute all data and find the training loss
+        with torch.no_grad():
+            net_dist, net_eval = net(data_x)
+            
+            dist_loss = (d_loss(net_dist, data_dist) 
+                         - optimum_dist_loss)
+            eval_loss = e_loss(net_eval, data_eval)
+        
+            dist_loss_tracker.append(dist_loss.item())
+            eval_loss_tracker.append(eval_loss.item())
     
     net.train()
     net.to(device=device)
@@ -517,10 +564,14 @@ def train_data(net,
     
     dist_loss_tracker = []
     eval_loss_tracker = []
-    dist_optimum_tracker = []
     # Batch loop
+    
+    optimum_dist_loss = d_loss(data_dist, data_dist)
+    
+    # Record at initialization.
+    record()
 
-    for j in range(batches):                
+    for j, record_counter in zip(range(batches), itertools.count(1)):      
         #TODO: make sure this is not a bottleneck when using GPU
         batch_indices = torch.tensor(
             random.sample(range(data_x.shape[0]), bs),
@@ -535,8 +586,9 @@ def train_data(net,
         
         net_dist, net_eval = net(batch_x)
         
-        dist_loss = distribution_loss(net_dist, batch_dist)
-        eval_loss = evaluation_loss(net_eval, batch_eval)
+        dist_loss = (d_loss(net_dist, batch_dist) 
+                     - optimum_dist_loss)
+        eval_loss = e_loss(net_eval, batch_eval)
         
         loss = dist_loss + eval_loss
         
@@ -544,21 +596,20 @@ def train_data(net,
         loss.backward()
         optimizer.step()
         
-        dist_loss_tracker.append(dist_loss.item())
-        eval_loss_tracker.append(eval_loss.item())
-        dist_optimum_tracker.append(distribution_loss(data_dist, data_dist))
+        # record at given frequency and at the end
+        if (record_counter % record_frequency == 0) or (j == batches - 1):
+            record()
+            if graph:
+                fig, ax = plt.subplots()
+                
+                for f,word in zip(
+                    [dist_loss_tracker,
+                     eval_loss_tracker,
+                     ],
+                    ['green','orange','red', 'purple', 'blue', 'black']):
+                    ax.plot(range(len(f)), f, 'tab:{}'.format(word))
+                plt.show()
     
-    if graph:
-        fig, ax = plt.subplots()
-        
-        for f,word in zip(
-            [dist_loss_tracker,
-             eval_loss_tracker,
-             dist_optimum_tracker,
-             ],
-            ['green','orange','red', 'purple', 'blue', 'black']):
-            ax.plot(range(len(f)), f, 'tab:{}'.format(word))
-        plt.show()
     
     
 
@@ -576,10 +627,10 @@ common_settings = {
 'trdev': 'cpu',#training device
 'mpdev': 'cpu',#mtcs device
 
-'loop_count': 5,
+'loop_count': 10,
 
-'distribution_loss': cross_entropy,
-'evaluation_loss': mse_loss,
+'d_loss': cross_entropy,
+'e_loss': mse_loss,
 
 'weight_decay': None,
 
@@ -602,17 +653,17 @@ common_settings = {
 varied_settings = {
 
 # Self-Play Settings
-'mcts_step_self_play': [256],
+'mcts_step_self_play': [128],
 'move_selector_self_play': [azms(i) for i in [1]],
-'temperature_self_play': [0.5],
+'temperature_self_play': [1],
 
 # Training Settings
 'max_data_length': [50000],
-'batches': [2500],
-'bs': [32],
+'batches': [5000],
+'bs': [64],
 'new_states': [5000],
 
-'lr': [0.05],
+'lr': [0.001],
 'momentum': [0.9],
 
 }
@@ -644,122 +695,5 @@ user = user_for_game(env.game)
 
 pprint.pprint(env.__dict__)
 
-env.training()
-
-# OLD 
-
-#%%
-# # General Settings
-# game = TCT
-# training_device = trdev = 'cpu'
-# mcts_play_device = mpdev = 'cpu'
-
-
-#%%
-
-# # Initialization
-# try:
-#     initialized
-# except NameError:
-    
-#     net = default_network_for_game(game, mpdev)
-#     net.eval() # Set to evaluation by default
-#     # ev = get_evaluator(net, device)
-#     # ag = MCTSAgent(ev, 50, azms(1), 0.1)
-    
-#     initialized = True
-
-#%%
-
-# # Shortcuts
-# azms = alpha_zero_move_selector_factory
-# user = user_for_game(game)
-# # ag = MCTSAgent(get_evaluator(net, mpdev),
-# #            mcts_step_testing,
-# #            move_selector_testing,
-# #            temperature_testing)
-
-#%%
-
-# # Training Loop
-
-# def test():
-#     # Testing Settings
-#     in_mcts = True
-#     # MCTS
-#     mcts_step_testing = 50
-#     move_selector_testing = alpha_zero_move_selector_factory(1)
-#     temperature_testing = 0.05
-#     # Evaluator
-#     move_dist_weight = 1.
-#     evaluation_weight = 0.
-    
-#     #-------
-    
-#     if in_mcts:
-#         agent = MCTSAgent(
-#                        get_evaluator(net, mpdev),
-#                        mcts_step_testing,
-#                        move_selector_testing,
-#                        temperature_testing)
-#     else:
-#         agent = EvaluatorAgent(get_evaluator(net, mpdev),
-#                                       distribution_weight=move_dist_weight,
-#                                       evaluation_weight=evaluation_weight)
-    
-#     # Performance Tracking
-    
-#     print('\n'+str(compare(game, [agent, UCTAgent(1000)], 20)))
-#     print('\n'+str(compare(game, [agent, UCTAgent(100)], 20)))
-#     print('\n'+str(compare(game, [agent, RandomAgent()], 50)))
-
-
-# # Training Loop Settings
-# loop_count = 30
-# #===================
-
-# for i in range(1, 1 + loop_count):
-#     print("\nLoop number {}/{} is starting...\n".format(i, loop_count))
-    
-#     # Self-Play Settings
-#     mcts_step_self_play = 50
-#     move_selector_self_play = alpha_zero_move_selector_factory(5)
-#     temperature_self_play = 1
-#     games_per_loop = 20
-    
-#     # Self-Play
-#     net.to(device=mpdev)
-#     raw_data = generate_data(game,
-#                               games_per_loop,
-#                               get_evaluator(net, mpdev),
-#                               mcts_step_self_play,
-#                               move_selector_self_play,
-#                               temperature_self_play)
-    
-#     ##%%
-    
-#     # Training Settings
-#     distribution_loss = mse_loss
-#     evaluation_loss = mse_loss
-#     epochs_per_loop = 3
-#     lr = 0.05
-#     momentum = 0.9
-#     weight_decay = None
-#     bs = 32
-    
-#     # Backprop training
-#     data = net.translator.translate_data(raw_data, trdev)
-#     net.to(device=trdev)
-#     train_data(
-#         net,
-#         epochs_per_loop,
-#         data,
-#         distribution_loss,
-#         evaluation_loss,
-#         lr=lr,
-#         momentum=momentum,
-#         weight_decay=weight_decay,
-#         batch_size=bs)
-
-#%%
+# env.training()
 

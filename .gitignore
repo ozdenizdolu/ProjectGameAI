@@ -1,3 +1,12 @@
 __pycache__
 .spyproject
 performance_metrics
+35k_fitted_network.pt
+35k_low_quality_dist.pt
+35k_low_quality_x.pt
+35k_low_quality_eval.pt
+dist_10000_states.pt
+eva_10000_states.pt
+delete.pt
+network_prepared_data_temp.pickle
+x_10000_states.pt

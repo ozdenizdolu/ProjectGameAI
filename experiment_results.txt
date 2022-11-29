@@ -1,0 +1,75 @@
+env.net
+Out[10]: 
+ReversiNetwork(
+  (body): Sequential()
+  (dist_head): Sequential(
+    (0): Linear(in_features=192, out_features=300, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=300, out_features=200, bias=True)
+    (3): ReLU()
+    (4): Linear(in_features=200, out_features=100, bias=True)
+    (5): ReLU()
+    (6): Linear(in_features=100, out_features=65, bias=True)
+    (7): Softmax(dim=1)
+  )
+  (eval_head): Sequential(
+    (0): Linear(in_features=192, out_features=300, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=300, out_features=200, bias=True)
+    (3): ReLU()
+    (4): Linear(in_features=200, out_features=100, bias=True)
+    (5): ReLU()
+    (6): Linear(in_features=100, out_features=1, bias=True)
+    (7): Tanh()
+  )
+)
+
+is able to fit 10k fresh generated examples by itself.
+Starts from dist 2.3, eval 1.0 error to 0.2 dist, 0.07 eval error in
+few epochs.
+
+=====================================================
+
+'net': ReversiNetwork(
+  (body): Sequential(
+    (0): Linear(in_features=192, out_features=1000, bias=True)
+    (1): ReLU()
+    (2): ResidualBlock(
+      (layer_1): Linear(in_features=1000, out_features=1000, bias=True)
+      (batch_norm_1): BatchNorm1d(1000, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu_1): ReLU()
+      (layer_2): Linear(in_features=1000, out_features=1000, bias=True)
+      (batch_norm_2): BatchNorm1d(1000, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu_2): ReLU()
+    )
+    (3): ResidualBlock(
+      (layer_1): Linear(in_features=1000, out_features=1000, bias=True)
+      (batch_norm_1): BatchNorm1d(1000, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu_1): ReLU()
+      (layer_2): Linear(in_features=1000, out_features=1000, bias=True)
+      (batch_norm_2): BatchNorm1d(1000, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu_2): ReLU()
+    )
+    (4): ResidualBlock(
+      (layer_1): Linear(in_features=1000, out_features=1000, bias=True)
+      (batch_norm_1): BatchNorm1d(1000, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu_1): ReLU()
+      (layer_2): Linear(in_features=1000, out_features=1000, bias=True)
+      (batch_norm_2): BatchNorm1d(1000, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu_2): ReLU()
+    )
+  )
+  (dist_head): Sequential(
+    (0): Linear(in_features=1000, out_features=65, bias=True)
+    (1): Softmax(dim=1)
+  )
+  (eval_head): Sequential(
+    (0): Linear(in_features=1000, out_features=1, bias=True)
+    (1): Tanh()
+  )
+),
+
+this one made its evaluations -1 immediately at lr = 0.05 but
+started to learn with lr=0.001. 5 epochs and it is already great with
+35k length low quality data. Still learns, should let it about 30 epochs.
+It fits the data great!
