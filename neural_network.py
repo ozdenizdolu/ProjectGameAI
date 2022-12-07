@@ -226,7 +226,6 @@ class MultiHeadSelfAttentionBlock(nn.Module):
         keys = torch.einsum('abcij,abcjk->abci', key_matrix, x)
         values = torch.einsum('abcij,abcjk->abci', value_matrix, x)
 
-
         assert (tuple(queries.shape)
                 == tuple(keys.shape)
                 == tuple(values.shape)
@@ -254,7 +253,6 @@ class MultiHeadSelfAttentionBlock(nn.Module):
     def _broadcast_head(self, head):
         return head.unsqueeze(1).unsqueeze(0)
 
-        
 
 class SelfAttentionBlock(nn.Module):
     

@@ -121,11 +121,22 @@ def update_pool(pool, game_count, game, neural_network, mcts_steps_per_move,
         pool.append(game_data)
 
 
-def compare(game, agents, times):
+def compare(game, agents, times, normalize = False):
+    """
+    
+
+    Parameters
+    ----------
+    normalize : bool, optional
+        Divide the results by the number of games. The default is False.
+
+
+    """
+    
     if len(agents) != len(game.players):
         raise ValueError('Number of agents do not match the game.')
         
-    results = {agent: 0 for agent in agents}
+    results = {agent: 0. for agent in agents}
     
     for _ in range(times):
         state = game.initial_state()
@@ -134,7 +145,10 @@ def compare(game, agents, times):
         game_result = TournamentGameSession(game, role_dict).run()
         for role, agent in role_dict.items():
             results[agent] = results[agent] + game_result[role]
-            
+    
+    if normalize:
+        results = {agent: score/times for agent,score in results.items()}
+    
     return results
 
 class TournamentGameSession(GameSessionTemplate):
