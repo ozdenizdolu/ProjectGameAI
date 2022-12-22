@@ -10,3 +10,8 @@ eva_10000_states.pt
 delete.pt
 network_prepared_data_temp.pickle
 x_10000_states.pt
+20k_x.pt
+20k_dist.pt
+20k_eva.pt
+20k_network.pt
+experiments
