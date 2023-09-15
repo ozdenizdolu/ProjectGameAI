@@ -1,6 +1,8 @@
 import math
 import random
 
+from numpy.random import default_rng
+
 from miscellaneous import after, PDist
 from .game_state_calculators._game_state_memorizer import GameStateMemorizer
 from ._core_search_tree import CoreSearchTree, CoreSearchNode
@@ -8,14 +10,25 @@ from .search_tree import SearchTree
 from .move_selectors import alpha_zero_move_selector_factory
 
 
+
+rng = default_rng()
+
+
 # This is used when the game do not support a special game state calculator.
 _default_game_state_calculator_factory = GameStateMemorizer
 
 
 _default_move_selector_factory = (
-    lambda: alpha_zero_move_selector_factory(1))
+    lambda: alpha_zero_move_selector_factory(4))
 
+#TODO: Implement noise properly so that the same noise is used.
+# If a tree is reused then the noise should be handled properly.
 
+#TODO: Did I prevent a bug where the evaluator does return an invalid move?
+# Does game state calculator catch that? --> I don't think so.
+# The evaluator may be giving an invalid move and the search may consider it.
+# However if the search goes through there, a key error will be raised in
+# game state calculator.
 def mcts(data,
          evaluator,
          times,
@@ -74,6 +87,10 @@ def mcts(data,
     
     if isinstance(data, SearchTree):
         search_tree = data
+        if not (dirichlet_noise_parameter == noise_contribution == None):
+            raise ValueError('''A previous search is used again with
+                             Dirictlet noise. This is not supported
+                             to avoid silent bugs.''')
     else:
         # So data is a game_state object
         # construct the search tree using game_state
@@ -93,12 +110,35 @@ def mcts(data,
         if root_game_info.is_game_over:
             raise ValueError(
                 'MCTS search cannot be done on a finished game state.')
-
-        root_move_priors, root_evaluation = evaluator(
+        
+        raw_root_move_priors, root_evaluation = evaluator(
                                              root_game_info.game_state,
                                              root_game_info.legal_moves,
                                              root_game_info.turn)
-    
+        
+        if raw_root_move_priors.keys() != root_game_info.legal_moves:
+            raise ValueError('''The evaluator failed to give the 
+                             legal moves in its distribution at the root.
+                             {} , {}'''.format(raw_root_move_priors,
+                             root_game_info.legal_moves))
+        
+        if dirichlet_noise_parameter == None:
+            root_move_priors = raw_root_move_priors
+            
+        else:
+            noise_array = rng.dirichlet(
+                [dirichlet_noise_parameter]*len(raw_root_move_priors.keys())
+                )
+            
+            noise = {move: val for move,val in zip(raw_root_move_priors.keys(),
+                                                  noise_array)}
+            
+            #Added noise to root priors similar to the AlphaZero article.
+            root_move_priors = {
+                    move: ((1-noise_contribution)*raw_root_move_priors[move]
+                           + noise_contribution*noise[move])
+                    for move in raw_root_move_priors.keys()}
+        
         core_tree = CoreSearchTree(root_move_priors, root_game_info.turn)
         
         search_tree = SearchTree(core_tree, game_state_calculator)
@@ -118,7 +158,7 @@ def mcts(data,
     for _ in range(times):
         address, hit_ghost, new_game_state_info = _tree_policy(
             core_tree, game_state_calculator,
-            move_selector, dirichlet_noise_parameter, noise_contribution)
+            move_selector)
 
         if new_game_state_info.is_game_over:
             # Evaluation is decided by the game rules.
@@ -180,8 +220,7 @@ def mcts(data,
     
     raise ValueError('Unknown return type ' + str(return_type))
 
-def _tree_policy(core_tree, game_state_calculator,
-                move_selector, dirichlet_noise_parameter, noise_contribution):
+def _tree_policy(core_tree, game_state_calculator, move_selector):
     address = []
     current = core_tree.root
     currently_at_root = True
@@ -192,13 +231,7 @@ def _tree_policy(core_tree, game_state_calculator,
             address.append((current, None, None))
             hit_ghost = False
             break
-        if currently_at_root:
-            move = move_selector(
-                current,
-                dirichlet_noise_parameter,
-                noise_contribution)
-        else:
-            move = move_selector(current, None, None)
+        move = move_selector(current)
         outcome = game_iterator.next_outcome(move)
         address.append((current, move, outcome))
 

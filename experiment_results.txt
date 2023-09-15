@@ -1,5 +1,58 @@
 =======================================================
 
+Experiment
+5000 states did not fit even with many epochs. Especially the
+evaluation loss suffers. Body of the network is 7 resnets with
+300 neurons each. Settings were
+common_settings = {
+
+'game': Reversi,
+'trdev': 'cpu',#training device
+'mpdev': 'cpu',#mtcs device
+
+'loop_count': 5,
+
+'d_loss': cross_entropy,
+'e_loss': mse_loss,
+
+'weight_decay': None,
+
+# Testing Settings
+
+'in_mcts_testing': True,
+# MCTS
+'mcts_step_testing': 10,
+'move_selector_testing': azms(1),
+'temperature_testing': 0.05,
+# Evaluator
+'move_dist_weight_testing': 1.,
+'evaluation_weight_testing': 0.,
+
+'dirichlet_noise_parameter': 0.3,
+'noise_contribution': 0.25
+
+}
+
+varied_settings = {
+
+# Self-Play Settings
+'mcts_step_self_play': [256],
+'move_selector_self_play': [azms(i) for i in [1]],
+'temperature_self_play': [0.5],
+
+# Training Settings
+'max_data_length': [50000],
+'batches': [2500],
+'bs': [32],
+'new_states': [5000],
+
+'lr': [0.05],
+'momentum': [0.9],
+
+}
+
+=======================================================
+
 env.net
 Out[10]: 
 ReversiNetwork(
@@ -75,3 +128,8 @@ this one made its evaluations -1 immediately at lr = 0.05 but
 started to learn with lr=0.001. 5 epochs and it is already great with
 35k length low quality data. Still learns, should let it about 30 epochs.
 It fits the data great!
+
+=====================================================
+
+
+=================================================

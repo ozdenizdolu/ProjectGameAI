@@ -318,7 +318,7 @@ class ResidualBlock(nn.Module):
     def forward(self, x):
         residual = x
         x = self.layer_1(x)
-        s = self.batch_norm_1(x)
+        x = self.batch_norm_1(x)
         x = self.relu_1(x)
         x = self.layer_2(x)
         x = self.batch_norm_2(x)

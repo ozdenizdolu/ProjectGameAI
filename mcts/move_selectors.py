@@ -1,14 +1,11 @@
 import math
 
 import numpy as np
-from numpy.random import default_rng
 
 from miscellaneous import after
-
-rng = default_rng()
  
 def alpha_zero_move_selector_factory(exploration_constant):
-    def func(search_node, dirichlet_noise_parameter, noise_contribution):
+    def func(search_node):
         
         # Do not add one, this is exactly the sum of the children visits
         # unlike UCT
@@ -17,19 +14,8 @@ def alpha_zero_move_selector_factory(exploration_constant):
         parent_visits = (
             sum(move.visits for move in search_node.moves.values()))
         
-        if dirichlet_noise_parameter == noise_contribution == None:
-            adjusted_prior = {move: d(move).prior_probability
-                              for move in search_node.moves.keys()}
-        else:
-            noise_array = rng.dirichlet(
-                [dirichlet_noise_parameter]*len(search_node.moves))
-            noise = {move:val for move,val in zip(search_node.moves.keys(),
-                                                  noise_array)}
-            
-            adjusted_prior = {
-                move: ((1-noise_contribution)*d(move).prior_probability
-                       + noise_contribution*noise[move])
-                for move in search_node.moves.keys()}
+        prior = {move: d(move).prior_probability
+                          for move in search_node.moves.keys()}
         
         return max(search_node.moves.keys(),
                    key = lambda move: 
@@ -37,8 +23,7 @@ def alpha_zero_move_selector_factory(exploration_constant):
                         d(move).action_value
                         # Plus upper confidence bound
                         + (exploration_constant
-                        # Where we use noise adjusted priors
-                        * adjusted_prior[move]
+                        * prior[move]
                         * math.sqrt(parent_visits)
                         / (1 + d(move).visits)))
     func.exploration_constant = exploration_constant
@@ -47,12 +32,8 @@ def alpha_zero_move_selector_factory(exploration_constant):
 
 # Do not use because dirichlet noise interface is not added
 def UCT_move_selector_factory(exploration_constant):
-    def func(search_node, dirichlet_noise_parameter, noise_contribution):
+    def func(search_node):
         
-        if dirichlet_noise_parameter == noise_contribution == None:
-            pass
-        else:
-            raise NotImplementedError()
         # Add one to make it positive.
         parent_visits = (
             1 + sum(move.visits for move in search_node.moves.values()))

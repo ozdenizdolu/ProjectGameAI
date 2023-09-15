@@ -220,11 +220,16 @@ class ReversiGameState:
     def is_game_over(self):
         return len(self.moves()) == 0
     
+    def __repr__(self):
+        return str(self)
+    
     def __str__(self):
         imaging = {Reversi.BLACK: 'X', Reversi.WHITE: 'O', 0: '-'}
         return ''.join(
             [("{: >3} "*8)[:-1].format(*[imaging[square] for square in row])
-             +'\n' for row in self._board])
+             +'\n' for row in self._board]
+            + ['\nTurn: {}'.format(imaging[self.turn()])]
+            + ['\nDid last player pass {}'.format(self._last_player_passed)])
 
     def __eq__(self, other):
         #TODO check if self._board == ... does the thing expected.
