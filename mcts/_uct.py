@@ -1,6 +1,6 @@
 # This module contains the standard uct algorithm
 
-from evaluator.evaluators import random_playout_evaluator
+from ..evaluator.evaluators import random_playout_evaluator
 from . import mcts
 from .move_selectors import UCT_move_selector_factory
 

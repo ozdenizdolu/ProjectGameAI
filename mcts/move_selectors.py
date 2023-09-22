@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from miscellaneous import after
+from ..miscellaneous import after
  
 def alpha_zero_move_selector_factory(exploration_constant):
     def func(search_node):

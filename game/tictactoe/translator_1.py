@@ -10,34 +10,6 @@ import numpy as np
 
 from ._tictactoe import TicTacToe
 
-def state_as_ordered_tokens(state, device):
-    # This one translates with respect to the current player and therefore
-    # no information about the current player is needed.
-    
-    tokens = []
-    
-    for i, piece in zip(itertools.count(0),
-                        np.nditer(state._board, order = 'C')):
-        if piece == state.turn():
-            piece = np.array([1.,0.,0.]).reshape(1,3)
-        elif piece == TicTacToe.empty:
-            piece = np.array([0.,0.,1.]).reshape(1,3)
-        elif piece == TicTacToe._other_player(state.turn()):
-            piece = np.array([0.,1.,0.]).reshape(1,3)
-        else:
-            assert False
-        
-        position = np.zeros((9,1), dtype = np.float32)
-        position[i, 0] = 1.
-        
-        token = (position * piece).flatten(order = 'C').reshape((1,27))
-        
-        tokens.append(token)
-    
-    return torch.tensor(np.concatenate(tokens, axis = 0),
-                        dtype=torch.get_default_dtype(),
-                        device=device)
-    
 
 def state_as_flattened_feature_planes(state):
     # # Make 2 feature planes for stones

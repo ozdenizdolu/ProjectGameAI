@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
+﻿"""
 Created on Sat Jun 11 00:54:52 2022
 
 @author: Özdeniz Dolu
@@ -242,25 +241,3 @@ class ReversiGameState:
         
     def __hash__(self):
         return hash((self._board, self._turn, self._last_player_passed))
-
-# Provide this as a part of the interface.
-# def random_play():
-#     current_state = ReversiGameState.initial_state()
-#     while not current_state.is_game_over():
-#         move = random.choice(current_state.moves())
-#         current_state = current_state.after(move, None)
-#     return current_state
-
-# if __name__ == '__main__':
-#     r = ReversiGameState.initial_state()
-#     for row in r._board:
-#         print(row)
-#     print(r.moves())
-    
-    
-#     states = [r]
-#     current_state = r
-#     while not current_state.is_game_over():
-#         move = random.choice(current_state.moves())
-#         current_state = current_state.after(move, None)
-#         states.append(current_state)

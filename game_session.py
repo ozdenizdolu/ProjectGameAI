@@ -1,10 +1,3 @@
-"""
----- Development Note ----
-GameSessionTemplate need not be public. It is there to abstract the common
-logic of game sessions. Each game session can (and should)
-create their own documentation for the run method. Run method can return
-things.
-"""
 import time
 from abc import ABC, abstractmethod
 
@@ -69,6 +62,7 @@ class GameSessionTemplate(ABC):
         
 
 class ConsoleGameSession(GameSessionTemplate):
+    """Make the agents play the game and observe it from the console."""
     
     def __init__(self, state, agent_dict, * , delay = 0.6):
         self._state = state

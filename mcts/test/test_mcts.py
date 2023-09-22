@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from evaluator.evaluators import random_playout_evaluator
+from ...evaluator.evaluators import random_playout_evaluator
 from .. import mcts, uct
 
 

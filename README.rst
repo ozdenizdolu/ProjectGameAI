@@ -1,15 +1,27 @@
-An Implementation of AlphaZero
+﻿An Implementation of AlphaZero
 ==============================
 
 This project is created by a machine learning group at Boğaziçi University.
-The aim is to implement AlphaZero [1]_ algorithm to understand it better.
-AlphaZero is an algorithm developed by Deepmind which learns to play games
+The aim is to implement Monte Carlo tree search algorithm, upper confidence
+bounds applied to trees algorithm[2]_, and AlphaZero [1]_ algorithm to understand
+them better. AlphaZero is an algorithm developed by Deepmind which learns to play games
 at superhuman level starting with no knowledge of the game except the rules. 
 
 Usage
 -----
 
-The project is still in development! 
+mcts folder contains the Monte Carlo tree search algorithm, and the special
+case of it called UCT, upper confidence bounds applied to trees [2]_. To
+use these algorithms use 
+
+import ProjectGameAI as ai
+
+# use ai.mcts(), ai.uct() or other functionalities. See init file for examples.
+
+See the glossary for the terms used. Some other functionalities can be used using
+the glossary as a guide. The rest is under development; for those see the branch
+development.
+
 
 Structure of the Project
 ------------------------
@@ -22,10 +34,10 @@ ProjectGameAI/game provides core functionality for supported games like
 reversi and tictactoe. Adding new games will be compatible with the rest
 of the project provided that the game and game states conform to the
 interface explained in glossary. Probabilistic games are also supported.
-We are currently experimenting with the reinforcement learning, and methods
-for it are located in console_2.py. It is not documented and is
-under constant change. The project also contains implementation of several
-types of neural networks including transformer.
+We are currently experimenting with reinforcement learning, but it is under
+development. The project also contains implementation of several
+types of neural networks including transformer, but they are not documented,
+and are in the development branch.
 
 Contribute
 ----------
@@ -45,3 +57,4 @@ References
 ----------
 
 .. [1] Silver, David, et al. "A general reinforcement learning algorithm that masters chess, shogi, and Go through self-play." Science 362.6419 (2018): 1140-1144.
+.. [2] Kocsis, Levente, and Csaba Szepesvári. "Bandit based monte-carlo planning." European conference on machine learning. Berlin, Heidelberg: Springer Berlin Heidelberg, 2006.

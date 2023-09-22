@@ -3,7 +3,7 @@ import random
 
 from numpy.random import default_rng
 
-from miscellaneous import after, PDist
+from ..miscellaneous import after, PDist
 from .game_state_calculators._game_state_memorizer import GameStateMemorizer
 from ._core_search_tree import CoreSearchTree, CoreSearchNode
 from .search_tree import SearchTree

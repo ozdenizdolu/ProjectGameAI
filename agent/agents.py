@@ -2,11 +2,11 @@ import random
 import math
 import re
 
-from mcts import mcts, uct
-from miscellaneous import after, PDist
+from ..mcts import mcts, uct
+from ..miscellaneous import after, PDist
 
-from game.reversi import Reversi
-from game.tictactoe import TicTacToe
+from ..game.reversi import Reversi
+from ..game.tictactoe import TicTacToe
 
 class RandomAgent:
     """
@@ -99,7 +99,9 @@ class MCTSAgent:
     An agent which uses mcts search and an evaluator to decide their moves.
     """
     
-    def __init__(self, evaluator, mcts_steps, move_selector, temperature):
+    def __init__(self, evaluator, mcts_steps,
+                 move_selector=None,
+                 temperature=0.1):
         self._evaluator = evaluator
         self._mcts_steps = mcts_steps
         self._move_selector = move_selector
@@ -114,43 +116,19 @@ class MCTSAgent:
         return 'MCTS agent'
 
 
-def user_for_game(game):
+def console_user_for_game(game):
+    """Returns an agent whose moves are determined by inputs to the console.
+
+    Only TicTacToe is supported by the library."""
+
     if game == TicTacToe:
         return _UserConsoleAgentForTCT()
     elif game == Reversi:
-        return _UserConsoleAgentForReversi()
+        return NotImplementedError('Reversi is not supported for user.')
     else:
         raise NotImplementedError('Given game is not recognized...')
         
-class _UserConsoleAgentForReversi:
-    
-    def __init__(self):
-        pass
-    
-    def ask(self, state):
-        # Request move from the player
-        print('\nYour turn...')
-        while True:
-            in_ = input()
-            #TODO include the pass move
-            match = re.match('\d\d', in_)
-            if match is None:
-                if in_ == 'e':
-                    break
-                if in_ == 'pass' and Reversi.PASS_MOVE in ga.moves():
-                    move = Reversi.PASS_MOVE
-                    break
-                print('Prompt not recognized.')
-                continue
-            x,y = map(int, match[0])
-            x,y = x-1,y-1
-            if (x,y) in ga.moves():
-                move = (x,y)
-                break
-            else:
-                print('Move is not possible.')
-                continue
-        return move
+
 
 class _UserConsoleAgentForTCT:
     
